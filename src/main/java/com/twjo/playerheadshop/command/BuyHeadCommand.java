@@ -1,10 +1,12 @@
 package com.twjo.playerheadshop.command;
 
+import com.twjo.playerheadshop.PlayerHeadShop;
 import com.twjo.playerheadshop.config.PluginConfig;
 import com.twjo.playerheadshop.database.DatabaseManager;
 import com.twjo.playerheadshop.database.TradeRecord;
 import com.twjo.playerheadshop.gui.HeadShopGui;
 import com.twjo.playerheadshop.lang.LanguageManager;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -25,13 +27,15 @@ public class BuyHeadCommand extends Command {
     private static final String PERMISSION_ADMIN = "playerheadshop.admin";
     private static final int PAGE_SIZE = 6;
 
+    private final PlayerHeadShop plugin;
     private final PluginConfig config;
     private final LanguageManager lang;
     private final HeadShopGui gui;
     private final DatabaseManager databaseManager;
 
-    public BuyHeadCommand(PluginConfig config, LanguageManager lang, HeadShopGui gui, DatabaseManager databaseManager) {
+    public BuyHeadCommand(PlayerHeadShop plugin, PluginConfig config, LanguageManager lang, HeadShopGui gui, DatabaseManager databaseManager) {
         super("buyhead", "購買自己的玩家頭顱", "/buyhead [reload|history]", List.of("playerheadshop", "headshop"));
+        this.plugin = plugin;
         this.config = config;
         this.lang = lang;
         this.gui = gui;
@@ -117,36 +121,58 @@ public class BuyHeadCommand extends Command {
 
             databaseManager.getRecords(finalFilter, targetPage, PAGE_SIZE).thenAccept(records -> {
                 // 1. 發送頂部 Header
+                Component header;
                 if (finalFilter == null || finalFilter.isEmpty()) {
-                    sender.sendMessage(lang.getComponent(sender, "messages.history-header",
+                    header = lang.getComponent(sender, "messages.history-header",
                             Placeholder.parsed("page", String.valueOf(targetPage)),
                             Placeholder.parsed("max_page", String.valueOf(maxPage)),
                             Placeholder.parsed("total", String.valueOf(total))
-                    ));
+                    );
                 } else {
-                    sender.sendMessage(lang.getComponent(sender, "messages.history-player-header",
+                    header = lang.getComponent(sender, "messages.history-player-header",
                             Placeholder.parsed("player", finalFilter),
                             Placeholder.parsed("page", String.valueOf(targetPage)),
                             Placeholder.parsed("max_page", String.valueOf(maxPage)),
                             Placeholder.parsed("total", String.valueOf(total))
-                    ));
+                    );
+                }
+                if (!header.equals(Component.empty())) {
+                    sender.sendMessage(header);
                 }
 
                 // 2. 輸出每筆記錄
                 for (TradeRecord rec : records) {
-                    sender.sendMessage(lang.getComponent(sender, "messages.history-entry",
+                    Component entry = lang.getComponent(sender, "messages.history-entry",
                             Placeholder.parsed("time", rec.getFormattedTime()),
                             Placeholder.parsed("player", rec.getPlayerName()),
-                            Placeholder.parsed("cost_amount", lang.formatAmount(sender, rec.getCostAmount())),
+                            Placeholder.parsed("cost_amount", formatCost(sender, rec.getCostItem(), rec.getCostAmount())),
                             Placeholder.parsed("cost_item", rec.getCostItem()),
                             Placeholder.parsed("head_amount", lang.formatAmount(sender, rec.getHeadAmount()))
-                    ));
+                    );
+                    if (!entry.equals(Component.empty())) {
+                        sender.sendMessage(entry);
+                    }
                 }
 
                 // 3. 發送底部 Footer
-                sender.sendMessage(lang.getComponent(sender, "messages.history-footer"));
+                Component footer = lang.getComponent(sender, "messages.history-footer");
+                if (!footer.equals(Component.empty())) {
+                    sender.sendMessage(footer);
+                }
             });
         });
+    }
+
+    private String formatCost(CommandSender sender, String costItem, int costAmount) {
+        if ("VAULT".equalsIgnoreCase(costItem)) {
+            return plugin.getVaultHook().format(costAmount);
+        } else if ("EXP_LEVEL".equalsIgnoreCase(costItem)) {
+            return lang.formatExpLevel(sender, costAmount);
+        } else if ("EXP_POINTS".equalsIgnoreCase(costItem)) {
+            return lang.formatExpPoints(sender, costAmount);
+        } else {
+            return lang.formatAmount(sender, costAmount);
+        }
     }
 
     @Override

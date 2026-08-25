@@ -33,6 +33,10 @@ public class DatabaseManager {
     private void initDatabase() {
         executor.submit(() -> {
             try {
+                try {
+                    Class.forName("org.sqlite.JDBC");
+                } catch (ClassNotFoundException ignored) {}
+
                 File dataFolder = plugin.getDataFolder();
                 if (!dataFolder.exists()) {
                     dataFolder.mkdirs();

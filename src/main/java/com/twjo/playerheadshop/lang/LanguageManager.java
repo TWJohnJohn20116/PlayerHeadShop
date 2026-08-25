@@ -17,7 +17,7 @@ import java.util.*;
 import java.util.logging.Level;
 
 /**
- * 完整多語言 (i18n) 管理器，支援多語系檔案、客戶端語言自動偵測與多層回退
+ * 完整多語言 (i18n) 管理器，支援自動熱同步、缺漏鍵值自動補齊與多層 Fallback
  */
 public class LanguageManager {
 
@@ -34,7 +34,7 @@ public class LanguageManager {
     }
 
     /**
-     * 載入與熱重載所有語言檔案
+     * 載入與熱重載所有語言檔案，並自動將新版本缺少的鍵值補齊至舊檔案中
      */
     public synchronized void load() {
         langConfigs.clear();
@@ -59,12 +59,24 @@ public class LanguageManager {
                     String code = file.getName().substring(0, file.getName().length() - 4).toLowerCase().replace("-", "_");
                     FileConfiguration cfg = YamlConfiguration.loadConfiguration(file);
 
-                    // 載入 JAR 內建預設值作為 fallback
+                    // 載入 JAR 內建預設值
                     String resourcePath = "languages/" + file.getName();
                     InputStream defaultStream = plugin.getResource(resourcePath);
                     if (defaultStream != null) {
                         YamlConfiguration defaultCfg = YamlConfiguration.loadConfiguration(new InputStreamReader(defaultStream, StandardCharsets.UTF_8));
                         cfg.setDefaults(defaultCfg);
+
+                        // 自動檢查並將新版本新增的鍵值寫入本地檔案，防止空白
+                        boolean modified = false;
+                        for (String defaultKey : defaultCfg.getKeys(true)) {
+                            if (!cfg.contains(defaultKey, true)) {
+                                cfg.set(defaultKey, defaultCfg.get(defaultKey));
+                                modified = true;
+                            }
+                        }
+                        if (modified) {
+                            cfg.save(file);
+                        }
                     }
 
                     langConfigs.put(code, cfg);
@@ -114,17 +126,23 @@ public class LanguageManager {
     }
 
     /**
-     * 獲取指定鍵值的字串內容
+     * 獲取指定鍵值的字串內容（具備多層回退）
      */
     public String getRaw(CommandSender sender, String key, String defaultValue) {
         String lang = resolveLanguage(sender);
         FileConfiguration cfg = langConfigs.getOrDefault(lang, langConfigs.get(DEFAULT_LANG));
-        if (cfg != null && cfg.contains(key)) {
-            return cfg.getString(key, defaultValue);
+        if (cfg != null) {
+            String val = cfg.getString(key);
+            if (val != null && !val.isEmpty()) {
+                return val;
+            }
         }
         FileConfiguration fallback = langConfigs.get(DEFAULT_LANG);
-        if (fallback != null && fallback.contains(key)) {
-            return fallback.getString(key, defaultValue);
+        if (fallback != null) {
+            String val = fallback.getString(key);
+            if (val != null && !val.isEmpty()) {
+                return val;
+            }
         }
         return defaultValue;
     }
@@ -135,12 +153,18 @@ public class LanguageManager {
     public List<String> getRawList(CommandSender sender, String key) {
         String lang = resolveLanguage(sender);
         FileConfiguration cfg = langConfigs.getOrDefault(lang, langConfigs.get(DEFAULT_LANG));
-        if (cfg != null && cfg.isList(key)) {
-            return cfg.getStringList(key);
+        if (cfg != null) {
+            List<String> list = cfg.getStringList(key);
+            if (!list.isEmpty()) {
+                return list;
+            }
         }
         FileConfiguration fallback = langConfigs.get(DEFAULT_LANG);
-        if (fallback != null && fallback.isList(key)) {
-            return fallback.getStringList(key);
+        if (fallback != null) {
+            List<String> list = fallback.getStringList(key);
+            if (!list.isEmpty()) {
+                return list;
+            }
         }
         return Collections.emptyList();
     }

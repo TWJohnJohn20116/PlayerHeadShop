@@ -42,7 +42,7 @@ public final class PlayerHeadShop extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new HeadShopListener(this.headShopService, this.headShopGui), this);
 
         // 註冊指令至伺服器 CommandMap (相容 Paper 現代架構與傳統伺服器)
-        BuyHeadCommand buyHeadCommand = new BuyHeadCommand(this.pluginConfig, this.languageManager, this.headShopGui, this.databaseManager);
+        BuyHeadCommand buyHeadCommand = new BuyHeadCommand(this, this.pluginConfig, this.languageManager, this.headShopGui, this.databaseManager);
         getServer().getCommandMap().register("playerheadshop", buyHeadCommand);
 
         if (this.vaultHook.hasEconomy()) {
