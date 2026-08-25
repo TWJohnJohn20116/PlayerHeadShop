@@ -1,0 +1,42 @@
+# =======================================================
+#           PlayerHeadShop Language File (English)
+# =======================================================
+
+messages:
+  prefix: "<gray>[<gold>HeadShop</gold>]</gray> "
+  success: "<green>You spent <gold><cost_amount> <cost_item></gold> and received <gold><head_amount> of your own heads!</green>"
+  not-enough-items: "<red>Not enough items! Required <gold><required> <item></gold>, you only have <gold><current></gold> (Missing <missing>).</red>"
+  inventory-full: "<yellow>Your inventory was full! Overflow heads have dropped at your feet.</yellow>"
+  reload-success: "<green>PlayerHeadShop configuration and language files reloaded successfully!</green>"
+  no-permission: "<red>You do not have permission to use this command!</red>"
+  player-only: "<red>This command can only be used by in-game players.</red>"
+
+gui:
+  main-title: "<gradient:#FFAA00:#FF5555><bold>Player Head Shop</bold></gradient>"
+  deposit-title: "<gradient:#FFAA00:#FF5555><bold>Deposit & Trade</bold></gradient> <gray>-</gray> <yellow><head_amount></yellow>"
+  confirm-button:
+    name: "<green><bold>▶ Click to Confirm Exchange</bold></green>"
+    lore:
+      - "<gray>Please place required items in the left slots:</gray>"
+      - "<white>Cost: <aqua><cost_amount> <cost_item></aqua></white>"
+      - "<white>Receive: <gold><head_amount> of your own head(s)</gold></white>"
+      - ""
+      - "<gray>(Multi-slot deposit supported for quantities > 64)</gray>"
+      - ""
+      - "<yellow>Click here once items are placed to complete purchase!</yellow>"
+  preview-head:
+    name: "<gold><bold>Receive: <head_amount> Head(s)</bold></gold>"
+    lore:
+      - "<gray>Preview of the player head with your skin.</gray>"
+      - "<gray>Amounts exceeding 64 are automatically bundled in stacks.</gray>"
+      - ""
+      - "<green>Clicking here also confirms the exchange!</green>"
+  back-button:
+    name: "<red><bold>◀ Back to Shop Menu</bold></red>"
+    lore:
+      - "<gray>Return to main menu. Unused items will be returned to your inventory.</gray>"
+
+units:
+  item: "<amount>x"
+  stacks-exact: "<amount>x (<stacks> stacks)"
+  stacks-rem: "<amount>x (<stacks> stacks + <rem> items)"

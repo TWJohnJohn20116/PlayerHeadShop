@@ -1,8 +1,9 @@
 package com.twjo.playerheadshop.service;
 
-import com.twjo.playerheadshop.config.PluginConfig;
 import com.twjo.playerheadshop.config.ShopOption;
 import com.twjo.playerheadshop.gui.DepositGuiHolder;
+import com.twjo.playerheadshop.lang.LanguageManager;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -14,14 +15,14 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
- * 處理玩家頭顱兌換、背包物品檢查與扣除、放置介面多格扣除、頭顱生成與掉落邏輯。
+ * 處理玩家頭顱兌換、背包物品檢查與扣除、放置介面多格扣除、頭顱生成與掉落邏輯（整合多語言 i18n 系統）
  */
 public class HeadShopService {
 
-    private final PluginConfig config;
+    private final LanguageManager lang;
 
-    public HeadShopService(PluginConfig config) {
-        this.config = config;
+    public HeadShopService(LanguageManager lang) {
+        this.lang = lang;
     }
 
     /**
@@ -41,7 +42,12 @@ public class HeadShopService {
 
         if (currentAmount < requiredAmount) {
             int missingAmount = requiredAmount - currentAmount;
-            config.sendNotEnoughItems(player, requiredAmount, costItem.name(), currentAmount, missingAmount);
+            lang.sendMessage(player, "not-enough-items",
+                    Placeholder.parsed("required", lang.formatAmount(player, requiredAmount)),
+                    Placeholder.parsed("item", costItem.name()),
+                    Placeholder.parsed("current", lang.formatAmount(player, currentAmount)),
+                    Placeholder.parsed("missing", lang.formatAmount(player, missingAmount))
+            );
             try {
                 player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
             } catch (Throwable ignored) {}
@@ -58,10 +64,6 @@ public class HeadShopService {
 
     /**
      * 處理玩家在放置兌換介面中點擊確認兌換的請求（支援多格累計計算，支援 > 64 個物品）
-     *
-     * @param player 點擊兌換的玩家
-     * @param holder 放置介面的 Holder
-     * @return 兌換成功返回 true，否則返回 false
      */
     public boolean processDepositPurchase(Player player, DepositGuiHolder holder) {
         if (player == null || !player.isOnline() || holder == null) {
@@ -88,7 +90,12 @@ public class HeadShopService {
 
         if (currentAmount < requiredAmount) {
             int missingAmount = requiredAmount - currentAmount;
-            config.sendNotEnoughItems(player, requiredAmount, costItem.name(), currentAmount, missingAmount);
+            lang.sendMessage(player, "not-enough-items",
+                    Placeholder.parsed("required", lang.formatAmount(player, requiredAmount)),
+                    Placeholder.parsed("item", costItem.name()),
+                    Placeholder.parsed("current", lang.formatAmount(player, currentAmount)),
+                    Placeholder.parsed("missing", lang.formatAmount(player, missingAmount))
+            );
             try {
                 player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
             } catch (Throwable ignored) {}
@@ -115,7 +122,7 @@ public class HeadShopService {
             }
         }
 
-        // 3. 生成頭顱並發放（支援發放超過 64 個頭顱，自動分組）
+        // 3. 生成頭顱並發放
         giveHeads(player, headAmount, requiredAmount, costItem.name());
         return true;
     }
@@ -138,11 +145,18 @@ public class HeadShopService {
         }
 
         if (hasOverflow) {
-            config.sendInventoryFull(player);
+            lang.sendMessage(player, "inventory-full");
         }
 
         // 發送購買成功提示與音效
-        config.sendSuccess(player, costAmount, costItemName, headAmount);
+        lang.sendMessage(player, "success",
+                Placeholder.parsed("cost_amount", lang.formatAmount(player, costAmount)),
+                Placeholder.parsed("cost_item", costItemName),
+                Placeholder.parsed("head_amount", lang.formatAmount(player, headAmount)),
+                Placeholder.parsed("amount", String.valueOf(costAmount)),
+                Placeholder.parsed("item", costItemName)
+        );
+
         try {
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.2f);
         } catch (Throwable ignored) {}

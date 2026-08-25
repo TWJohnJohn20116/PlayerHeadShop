@@ -2,6 +2,7 @@ package com.twjo.playerheadshop.gui;
 
 import com.twjo.playerheadshop.config.PluginConfig;
 import com.twjo.playerheadshop.config.ShopOption;
+import com.twjo.playerheadshop.lang.LanguageManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -19,15 +20,17 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 負責構建與開啟 PlayerHeadShop 的箱子 GUI 介面（支援主選單與多格放置兌換介面）
+ * 負責構建與開啟 PlayerHeadShop 的箱子 GUI 介面（完整支援多語言 i18n 系統）
  */
 public class HeadShopGui {
 
     private final PluginConfig config;
+    private final LanguageManager lang;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
-    public HeadShopGui(PluginConfig config) {
+    public HeadShopGui(PluginConfig config, LanguageManager lang) {
         this.config = config;
+        this.lang = lang;
     }
 
     /**
@@ -40,7 +43,7 @@ public class HeadShopGui {
 
         int rows = config.getGuiRows();
         int size = rows * 9;
-        Component title = miniMessage.deserialize(config.getGuiTitle());
+        Component title = lang.getComponent(player, "gui.main-title");
 
         Map<Integer, ShopOption> options = config.getOptions();
         HeadShopGuiHolder holder = new HeadShopGuiHolder(player, options);
@@ -76,7 +79,9 @@ public class HeadShopGui {
         }
 
         int size = 27; // 3 行
-        Component title = miniMessage.deserialize("<gradient:#FFAA00:#FF5555><bold>放置物品兌換</bold></gradient> <gray>-</gray> <yellow>" + option.getHeadAmount() + " 個頭顱</yellow>");
+        Component title = lang.getComponent(player, "gui.deposit-title",
+                Placeholder.parsed("head_amount", lang.formatAmount(player, option.getHeadAmount()))
+        );
 
         DepositGuiHolder holder = new DepositGuiHolder(player, option);
         Inventory inventory = Bukkit.createInventory(holder, size, title);
@@ -96,7 +101,7 @@ public class HeadShopGui {
         }
 
         // 3. Slot 14 放置確認兌換按鈕
-        ItemStack confirmButton = createConfirmButton(option);
+        ItemStack confirmButton = createConfirmButton(player, option);
         inventory.setItem(DepositGuiHolder.CONFIRM_SLOT, confirmButton);
 
         // 4. Slot 16 放置產出預覽頭顱
@@ -104,7 +109,7 @@ public class HeadShopGui {
         inventory.setItem(DepositGuiHolder.PREVIEW_SLOT, previewHead);
 
         // 5. Slot 18 放置返回按鈕
-        ItemStack backButton = createBackButton();
+        ItemStack backButton = createBackButton(player);
         inventory.setItem(DepositGuiHolder.BACK_SLOT, backButton);
 
         // 6. 開啟介面
@@ -145,21 +150,33 @@ public class HeadShopGui {
 
             TagResolver[] resolvers = new TagResolver[]{
                     Placeholder.parsed("player", player.getName()),
-                    Placeholder.parsed("head_amount", formatAmountDescription(option.getHeadAmount())),
-                    Placeholder.parsed("cost_amount", formatAmountDescription(option.getCostAmount())),
+                    Placeholder.parsed("head_amount", lang.formatAmount(player, option.getHeadAmount())),
+                    Placeholder.parsed("cost_amount", lang.formatAmount(player, option.getCostAmount())),
                     Placeholder.parsed("cost_item", option.getCostItem().name()),
                     Placeholder.parsed("amount", String.valueOf(option.getCostAmount())),
                     Placeholder.parsed("item", option.getCostItem().name())
             };
 
+            // 若自訂了名稱則優先使用自訂名稱，否則使用語言檔
             if (option.getDisplayName() != null && !option.getDisplayName().isEmpty()) {
                 Component displayName = miniMessage.deserialize(option.getDisplayName(), resolvers);
                 skullMeta.displayName(displayName);
+            } else {
+                Component displayName = lang.getComponent(player, "gui.preview-head.name", resolvers);
+                skullMeta.displayName(displayName);
             }
 
-            if (!option.getLore().isEmpty()) {
+            // 若自訂了說明文字則優先使用，否則使用語言檔
+            if (option.getLore() != null && !option.getLore().isEmpty()) {
                 List<Component> loreComponents = new ArrayList<>();
                 for (String line : option.getLore()) {
+                    loreComponents.add(miniMessage.deserialize(line, resolvers));
+                }
+                skullMeta.lore(loreComponents);
+            } else {
+                List<String> rawLore = lang.getRawList(player, "gui.confirm-button.lore");
+                List<Component> loreComponents = new ArrayList<>();
+                for (String line : rawLore) {
                     loreComponents.add(miniMessage.deserialize(line, resolvers));
                 }
                 skullMeta.lore(loreComponents);
@@ -174,20 +191,26 @@ public class HeadShopGui {
     /**
      * 建立確認兌換按鈕
      */
-    private ItemStack createConfirmButton(ShopOption option) {
+    private ItemStack createConfirmButton(Player player, ShopOption option) {
         ItemStack item = new ItemStack(Material.EMERALD, 1);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.displayName(miniMessage.deserialize("<green><bold>▶ 點擊確認兌換</bold></green>"));
-            List<Component> lore = List.of(
-                    miniMessage.deserialize("<gray>請在左側放置區放入所需物品：</gray>"),
-                    miniMessage.deserialize("<white>需求: <aqua>" + formatAmountDescription(option.getCostAmount()) + " " + option.getCostItem().name() + "</aqua></white>"),
-                    miniMessage.deserialize("<white>獲得: <gold>" + formatAmountDescription(option.getHeadAmount()) + " 你的個人頭顱</gold></white>"),
-                    Component.empty(),
-                    miniMessage.deserialize("<gray>(放置區支援放置多組物品，超過 64 個可分格放置)</gray>"),
-                    Component.empty(),
-                    miniMessage.deserialize("<yellow>放好後點擊此處即可完成購買！</yellow>")
-            );
+            TagResolver[] resolvers = new TagResolver[]{
+                    Placeholder.parsed("player", player.getName()),
+                    Placeholder.parsed("head_amount", lang.formatAmount(player, option.getHeadAmount())),
+                    Placeholder.parsed("cost_amount", lang.formatAmount(player, option.getCostAmount())),
+                    Placeholder.parsed("cost_item", option.getCostItem().name()),
+                    Placeholder.parsed("amount", String.valueOf(option.getCostAmount())),
+                    Placeholder.parsed("item", option.getCostItem().name())
+            };
+
+            meta.displayName(lang.getComponent(player, "gui.confirm-button.name", resolvers));
+
+            List<String> rawLore = lang.getRawList(player, "gui.confirm-button.lore");
+            List<Component> lore = new ArrayList<>();
+            for (String line : rawLore) {
+                lore.add(miniMessage.deserialize(line, resolvers));
+            }
             meta.lore(lore);
             item.setItemMeta(meta);
         }
@@ -206,13 +229,24 @@ public class HeadShopGui {
             } catch (Throwable ignored) {
                 skullMeta.setOwningPlayer(player);
             }
-            skullMeta.displayName(miniMessage.deserialize("<gold><bold>獲得: " + formatAmountDescription(option.getHeadAmount()) + " 個人頭顱</bold></gold>"));
-            skullMeta.lore(List.of(
-                    miniMessage.deserialize("<gray>這是你即將獲得的皮膚外觀頭顱預覽。</gray>"),
-                    miniMessage.deserialize("<gray>數量超過 64 個時將自動為您分組打包。</gray>"),
-                    Component.empty(),
-                    miniMessage.deserialize("<green>點擊此處亦可確認兌換！</green>")
-            ));
+
+            TagResolver[] resolvers = new TagResolver[]{
+                    Placeholder.parsed("player", player.getName()),
+                    Placeholder.parsed("head_amount", lang.formatAmount(player, option.getHeadAmount())),
+                    Placeholder.parsed("cost_amount", lang.formatAmount(player, option.getCostAmount())),
+                    Placeholder.parsed("cost_item", option.getCostItem().name()),
+                    Placeholder.parsed("amount", String.valueOf(option.getCostAmount())),
+                    Placeholder.parsed("item", option.getCostItem().name())
+            };
+
+            skullMeta.displayName(lang.getComponent(player, "gui.preview-head.name", resolvers));
+
+            List<String> rawLore = lang.getRawList(player, "gui.preview-head.lore");
+            List<Component> lore = new ArrayList<>();
+            for (String line : rawLore) {
+                lore.add(miniMessage.deserialize(line, resolvers));
+            }
+            skullMeta.lore(lore);
             item.setItemMeta(skullMeta);
         }
         return item;
@@ -221,31 +255,19 @@ public class HeadShopGui {
     /**
      * 建立返回主選單按鈕
      */
-    private ItemStack createBackButton() {
+    private ItemStack createBackButton(Player player) {
         ItemStack item = new ItemStack(Material.ARROW, 1);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.displayName(miniMessage.deserialize("<red><bold>◀ 返回方案選單</bold></red>"));
-            meta.lore(List.of(
-                    miniMessage.deserialize("<gray>返回主選單，未兌換的物品將自動歸還至背包。</gray>")
-            ));
+            meta.displayName(lang.getComponent(player, "gui.back-button.name"));
+            List<String> rawLore = lang.getRawList(player, "gui.back-button.lore");
+            List<Component> lore = new ArrayList<>();
+            for (String line : rawLore) {
+                lore.add(miniMessage.deserialize(line));
+            }
+            meta.lore(lore);
             item.setItemMeta(meta);
         }
         return item;
-    }
-
-    /**
-     * 格式化數量描述（當數量超過 64 個時標註組數）
-     */
-    private String formatAmountDescription(int amount) {
-        if (amount <= 64) {
-            return amount + " 個";
-        }
-        int stacks = amount / 64;
-        int rem = amount % 64;
-        if (rem == 0) {
-            return amount + " 個 (" + stacks + " 組)";
-        }
-        return amount + " 個 (" + stacks + " 組 + " + rem + " 個)";
     }
 }

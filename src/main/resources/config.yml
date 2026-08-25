@@ -2,9 +2,16 @@
 #               PlayerHeadShop 插件設定檔
 # =======================================================
 
+# 語言設定 (Language)
+# 可選值:
+#   "auto"  - 根據每位玩家的 Minecraft 客戶端語言自動切換 (繁中 / 簡中 / 英文)
+#   "zh_TW" - 強制全服使用 繁體中文
+#   "zh_CN" - 强制全服使用 简体中文
+#   "en_US" - Force English
+language: "auto"
+
 # GUI 箱子介面設定
 gui:
-  title: "<gradient:#FFAA00:#FF5555><bold>自訂頭顱商店</bold></gradient>"
   rows: 3
   filler:
     enabled: true
@@ -13,58 +20,21 @@ gui:
 
 # 多種兌換方案清單
 # slot: 箱子格子編號 (0 ~ 53，例如 3 行介面為 0 ~ 26)
-# display-name: 商品顯示名稱 (支援 MiniMessage 格式與佔位符)
-# lore: 商品說明文字 (支援 MiniMessage 格式與佔位符)
 # cost-item: 消耗物品 (有效 Bukkit Material 名稱，如 DIAMOND, EMERALD, GOLD_INGOT, NETHERITE_INGOT 等)
-# cost-amount: 消耗數量
-# head-amount: 獲得頭顱數量
+# cost-amount: 消耗數量 (支援任意數量，大於 64 可在放置區分格放置)
+# head-amount: 獲得頭顱數量 (支援任意數量，大於 64 自動分組堆疊發放)
 options:
   - slot: 11
-    display-name: "<yellow><bold>1 個頭顱</bold></yellow>"
-    lore:
-      - "<gray>購買印有自身皮膚外觀的頭顱。"
-      - ""
-      - "<white>獲得數量: <gold>1 個</gold></white>"
-      - "<white>消耗物品: <aqua><cost_amount> 個 <cost_item></aqua></white>"
-      - ""
-      - "<green>▶ 點擊立即購買！</green>"
     cost-item: "DIAMOND"
     cost-amount: 1
     head-amount: 1
 
   - slot: 13
-    display-name: "<gold><bold>8 個頭顱 (特惠包)</bold></gold>"
-    lore:
-      - "<gray>一次性購買 8 個個人頭顱。"
-      - ""
-      - "<white>獲得數量: <gold>8 個</gold></white>"
-      - "<white>消耗物品: <aqua><cost_amount> 個 <cost_item></aqua></white>"
-      - ""
-      - "<green>▶ 點擊立即購買！</green>"
     cost-item: "DIAMOND"
     cost-amount: 7
     head-amount: 8
 
   - slot: 15
-    display-name: "<light_purple><bold>64 個頭顱 (超值箱)</bold></light_purple>"
-    lore:
-      - "<gray>一整組 64 個個人頭顱，建造必備！"
-      - ""
-      - "<white>獲得數量: <gold>64 個</gold></white>"
-      - "<white>消耗物品: <aqua><cost_amount> 個 <cost_item></aqua></white>"
-      - ""
-      - "<green>▶ 點擊立即購買！</green>"
     cost-item: "DIAMOND"
     cost-amount: 50
     head-amount: 64
-
-# 自訂訊息（支援 MiniMessage 格式）
-# 支援佔位符: <amount>, <item>, <cost_amount>, <cost_item>, <head_amount>, <required>, <current>, <missing>, <player>
-messages:
-  prefix: "<gray>[<gold>HeadShop</gold>]</gray> "
-  success: "<green>你花費了 <gold><cost_amount> 個 <cost_item></gold> 購買了 <gold><head_amount> 個</gold> 自己的頭顱！</green>"
-  not-enough-items: "<red>物品不足！需要 <gold><required> 個 <item></gold>，你目前只有 <gold><current> 個</gold>（缺少 <missing> 個）。</red>"
-  inventory-full: "<yellow>你的背包已滿，溢出的頭顱已掉落在你的腳下！</yellow>"
-  reload-success: "<green>PlayerHeadShop 設定檔已成功重新加載！</green>"
-  no-permission: "<red>你沒有權限使用此指令！</red>"
-  player-only: "<red>此指令僅限遊戲內玩家使用。</red>"

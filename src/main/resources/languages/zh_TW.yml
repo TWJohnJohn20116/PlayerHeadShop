@@ -1,0 +1,42 @@
+# =======================================================
+#           PlayerHeadShop 語言檔 (繁體中文)
+# =======================================================
+
+messages:
+  prefix: "<gray>[<gold>HeadShop</gold>]</gray> "
+  success: "<green>你花費了 <gold><cost_amount> <cost_item></gold> 購買了 <gold><head_amount> 自己的頭顱！</green>"
+  not-enough-items: "<red>物品不足！需要 <gold><required> <item></gold>，你目前只有 <gold><current></gold>（缺少 <missing>）。</red>"
+  inventory-full: "<yellow>你的背包已滿，溢出的頭顱已掉落在你的腳下！</yellow>"
+  reload-success: "<green>PlayerHeadShop 設定檔與語言檔已成功重新加載！</green>"
+  no-permission: "<red>你沒有權限使用此指令！</red>"
+  player-only: "<red>此指令僅限遊戲內玩家使用。</red>"
+
+gui:
+  main-title: "<gradient:#FFAA00:#FF5555><bold>自訂頭顱商店</bold></gradient>"
+  deposit-title: "<gradient:#FFAA00:#FF5555><bold>放置物品兌換</bold></gradient> <gray>-</gray> <yellow><head_amount></yellow>"
+  confirm-button:
+    name: "<green><bold>▶ 點擊確認兌換</bold></green>"
+    lore:
+      - "<gray>請在左側放置區放入所需物品：</gray>"
+      - "<white>需求: <aqua><cost_amount> <cost_item></aqua></white>"
+      - "<white>獲得: <gold><head_amount> 你的個人頭顱</gold></white>"
+      - ""
+      - "<gray>(放置區支援放置多組物品，超過 64 個可分格放置)</gray>"
+      - ""
+      - "<yellow>放好後點擊此處即可完成購買！</yellow>"
+  preview-head:
+    name: "<gold><bold>獲得: <head_amount> 個人頭顱</bold></gold>"
+    lore:
+      - "<gray>這是你即將獲得的皮膚外觀頭顱預覽。</gray>"
+      - "<gray>數量超過 64 個時將自動為您分組打包。</gray>"
+      - ""
+      - "<green>點擊此處亦可確認兌換！</green>"
+  back-button:
+    name: "<red><bold>◀ 返回方案選單</bold></red>"
+    lore:
+      - "<gray>返回主選單，未兌換的物品將自動歸還至背包。</gray>"
+
+units:
+  item: "<amount> 個"
+  stacks-exact: "<amount> 個 (<stacks> 組)"
+  stacks-rem: "<amount> 個 (<stacks> 組 + <rem> 個)"

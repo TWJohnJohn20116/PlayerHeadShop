@@ -2,6 +2,7 @@ package com.twjo.playerheadshop.command;
 
 import com.twjo.playerheadshop.config.PluginConfig;
 import com.twjo.playerheadshop.gui.HeadShopGui;
+import com.twjo.playerheadshop.lang.LanguageManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -12,7 +13,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 處理 /buyhead 指令與 Tab 補全
+ * 處理 /buyhead 指令與 Tab 補全（整合多語言 i18n 系統）
  */
 public class BuyHeadCommand extends Command {
 
@@ -20,11 +21,13 @@ public class BuyHeadCommand extends Command {
     private static final String PERMISSION_ADMIN = "playerheadshop.admin";
 
     private final PluginConfig config;
+    private final LanguageManager lang;
     private final HeadShopGui gui;
 
-    public BuyHeadCommand(PluginConfig config, HeadShopGui gui) {
+    public BuyHeadCommand(PluginConfig config, LanguageManager lang, HeadShopGui gui) {
         super("buyhead", "購買自己的玩家頭顱", "/buyhead [reload]", List.of("playerheadshop", "headshop"));
         this.config = config;
+        this.lang = lang;
         this.gui = gui;
         setPermission(PERMISSION_USE);
     }
@@ -34,23 +37,24 @@ public class BuyHeadCommand extends Command {
         // 處理重載子指令 /buyhead reload
         if (args.length > 0 && args[0].equalsIgnoreCase("reload")) {
             if (!sender.hasPermission(PERMISSION_ADMIN)) {
-                config.sendNoPermission(sender);
+                lang.sendMessage(sender, "no-permission");
                 return true;
             }
             config.reload();
-            config.sendReloadSuccess(sender);
+            lang.load();
+            lang.sendMessage(sender, "reload-success");
             return true;
         }
 
         // 開啟 GUI 指令限遊戲內玩家使用
         if (!(sender instanceof Player player)) {
-            config.sendPlayerOnly(sender);
+            lang.sendMessage(sender, "player-only");
             return true;
         }
 
         // 檢查一般玩家使用權限
         if (!player.hasPermission(PERMISSION_USE)) {
-            config.sendNoPermission(player);
+            lang.sendMessage(player, "no-permission");
             return true;
         }
 
