@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
- * 處理玩家頭顱兌換、背包物品檢查與扣除、放置介面扣除、頭顱生成與掉落邏輯。
+ * 處理玩家頭顱兌換、背包物品檢查與扣除、放置介面多格扣除、頭顱生成與掉落邏輯。
  */
 public class HeadShopService {
 
@@ -57,7 +57,7 @@ public class HeadShopService {
     }
 
     /**
-     * 處理玩家在放置兌換介面中點擊確認兌換的請求
+     * 處理玩家在放置兌換介面中點擊確認兌換的請求（支援多格累計計算，支援 > 64 個物品）
      *
      * @param player 點擊兌換的玩家
      * @param holder 放置介面的 Holder
@@ -77,9 +77,14 @@ public class HeadShopService {
         int requiredAmount = option.getCostAmount();
         int headAmount = option.getHeadAmount();
 
-        // 1. 檢查放置區 (Slot 11) 的物品
-        ItemStack inputItem = holder.getInventory().getItem(DepositGuiHolder.INPUT_SLOT);
-        int currentAmount = (inputItem != null && inputItem.getType() == costItem) ? inputItem.getAmount() : 0;
+        // 1. 計算所有放置格 (Slots 10, 11, 12, 19, 20, 21) 內的目標物品總數
+        int currentAmount = 0;
+        for (int slot : DepositGuiHolder.INPUT_SLOTS) {
+            ItemStack stack = holder.getInventory().getItem(slot);
+            if (stack != null && stack.getType() == costItem) {
+                currentAmount += stack.getAmount();
+            }
+        }
 
         if (currentAmount < requiredAmount) {
             int missingAmount = requiredAmount - currentAmount;
@@ -90,16 +95,27 @@ public class HeadShopService {
             return false;
         }
 
-        // 2. 扣除放置區中的指定數量
-        if (inputItem != null) {
-            if (inputItem.getAmount() <= requiredAmount) {
-                holder.getInventory().setItem(DepositGuiHolder.INPUT_SLOT, null);
-            } else {
-                inputItem.setAmount(inputItem.getAmount() - requiredAmount);
+        // 2. 依序扣除放置格中的指定數量
+        int remainingToDeduct = requiredAmount;
+        for (int slot : DepositGuiHolder.INPUT_SLOTS) {
+            ItemStack stack = holder.getInventory().getItem(slot);
+            if (stack != null && stack.getType() == costItem) {
+                int stackAmount = stack.getAmount();
+                if (stackAmount <= remainingToDeduct) {
+                    remainingToDeduct -= stackAmount;
+                    holder.getInventory().setItem(slot, null);
+                } else {
+                    stack.setAmount(stackAmount - remainingToDeduct);
+                    remainingToDeduct = 0;
+                }
+
+                if (remainingToDeduct <= 0) {
+                    break;
+                }
             }
         }
 
-        // 3. 生成頭顱並發放
+        // 3. 生成頭顱並發放（支援發放超過 64 個頭顱，自動分組）
         giveHeads(player, headAmount, requiredAmount, costItem.name());
         return true;
     }
@@ -175,7 +191,7 @@ public class HeadShopService {
     }
 
     /**
-     * 建立印有指定玩家皮膚外觀的頭顱物品列表（支援超過 64 個時拆分為多堆疊）
+     * 建立印有指定玩家皮膚外觀的頭顱物品列表（支援超過 64 個時自動拆分為多堆疊）
      */
     private List<ItemStack> createPlayerHeads(Player player, int totalAmount) {
         List<ItemStack> list = new ArrayList<>();

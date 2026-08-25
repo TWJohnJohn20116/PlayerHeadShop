@@ -6,14 +6,17 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Set;
+
 /**
- * 玩家放置物品進行兌換的專屬 GUI Holder
+ * 玩家放置物品進行兌換的專屬 GUI Holder（支援多格放置區，解決單格無法超過 64 個物品的問題）
  */
 public class DepositGuiHolder implements InventoryHolder {
 
-    public static final int INPUT_SLOT = 11;
-    public static final int CONFIRM_SLOT = 13;
-    public static final int PREVIEW_SLOT = 15;
+    // 支援 6 個放置格（最多可容納 6 * 64 = 384 個物品）
+    public static final Set<Integer> INPUT_SLOTS = Set.of(10, 11, 12, 19, 20, 21);
+    public static final int CONFIRM_SLOT = 14;
+    public static final int PREVIEW_SLOT = 16;
     public static final int BACK_SLOT = 18;
 
     private final Player player;
@@ -49,5 +52,9 @@ public class DepositGuiHolder implements InventoryHolder {
 
     public void setNavigatingBack(boolean navigatingBack) {
         isNavigatingBack = navigatingBack;
+    }
+
+    public static boolean isInputSlot(int slot) {
+        return INPUT_SLOTS.contains(slot);
     }
 }

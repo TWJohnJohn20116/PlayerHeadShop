@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 負責構建與開啟 PlayerHeadShop 的箱子 GUI 介面（包含主選單與放置兌換介面）
+ * 負責構建與開啟 PlayerHeadShop 的箱子 GUI 介面（支援主選單與多格放置兌換介面）
  */
 public class HeadShopGui {
 
@@ -32,8 +32,6 @@ public class HeadShopGui {
 
     /**
      * 為指定玩家建立並開啟自訂頭顱商店主選單 GUI
-     *
-     * @param player 目標玩家
      */
     public void open(Player player) {
         if (player == null || !player.isOnline()) {
@@ -71,9 +69,6 @@ public class HeadShopGui {
 
     /**
      * 開啟專屬放置兌換介面 (Deposit & Trade GUI)
-     *
-     * @param player 目標玩家
-     * @param option 選擇的兌換方案
      */
     public void openDepositGui(Player player, ShopOption option) {
         if (player == null || !player.isOnline() || option == null) {
@@ -87,20 +82,24 @@ public class HeadShopGui {
         Inventory inventory = Bukkit.createInventory(holder, size, title);
         holder.setInventory(inventory);
 
-        // 1. 背景填滿玻璃板
+        // 1. 背景填滿玻璃板 (除放置區以外)
         ItemStack filler = createFillerItem();
         for (int i = 0; i < size; i++) {
-            inventory.setItem(i, filler);
+            if (!DepositGuiHolder.isInputSlot(i)) {
+                inventory.setItem(i, filler);
+            }
         }
 
-        // 2. 開放 Slot 11 為空（玩家主動放置區）
-        inventory.setItem(DepositGuiHolder.INPUT_SLOT, null);
+        // 2. 確保放置區清空 (Slots: 10, 11, 12, 19, 20, 21)
+        for (int slot : DepositGuiHolder.INPUT_SLOTS) {
+            inventory.setItem(slot, null);
+        }
 
-        // 3. Slot 13 放置確認兌換按鈕
+        // 3. Slot 14 放置確認兌換按鈕
         ItemStack confirmButton = createConfirmButton(option);
         inventory.setItem(DepositGuiHolder.CONFIRM_SLOT, confirmButton);
 
-        // 4. Slot 15 放置產出預覽頭顱
+        // 4. Slot 16 放置產出預覽頭顱
         ItemStack previewHead = createPreviewHead(player, option);
         inventory.setItem(DepositGuiHolder.PREVIEW_SLOT, previewHead);
 
@@ -146,8 +145,8 @@ public class HeadShopGui {
 
             TagResolver[] resolvers = new TagResolver[]{
                     Placeholder.parsed("player", player.getName()),
-                    Placeholder.parsed("head_amount", String.valueOf(option.getHeadAmount())),
-                    Placeholder.parsed("cost_amount", String.valueOf(option.getCostAmount())),
+                    Placeholder.parsed("head_amount", formatAmountDescription(option.getHeadAmount())),
+                    Placeholder.parsed("cost_amount", formatAmountDescription(option.getCostAmount())),
                     Placeholder.parsed("cost_item", option.getCostItem().name()),
                     Placeholder.parsed("amount", String.valueOf(option.getCostAmount())),
                     Placeholder.parsed("item", option.getCostItem().name())
@@ -181,9 +180,11 @@ public class HeadShopGui {
         if (meta != null) {
             meta.displayName(miniMessage.deserialize("<green><bold>▶ 點擊確認兌換</bold></green>"));
             List<Component> lore = List.of(
-                    miniMessage.deserialize("<gray>請在左側空格放入所需物品：</gray>"),
-                    miniMessage.deserialize("<white>需求: <aqua>" + option.getCostAmount() + " 個 " + option.getCostItem().name() + "</aqua></white>"),
-                    miniMessage.deserialize("<white>獲得: <gold>" + option.getHeadAmount() + " 個 你的個人頭顱</gold></white>"),
+                    miniMessage.deserialize("<gray>請在左側放置區放入所需物品：</gray>"),
+                    miniMessage.deserialize("<white>需求: <aqua>" + formatAmountDescription(option.getCostAmount()) + " " + option.getCostItem().name() + "</aqua></white>"),
+                    miniMessage.deserialize("<white>獲得: <gold>" + formatAmountDescription(option.getHeadAmount()) + " 你的個人頭顱</gold></white>"),
+                    Component.empty(),
+                    miniMessage.deserialize("<gray>(放置區支援放置多組物品，超過 64 個可分格放置)</gray>"),
                     Component.empty(),
                     miniMessage.deserialize("<yellow>放好後點擊此處即可完成購買！</yellow>")
             );
@@ -205,10 +206,12 @@ public class HeadShopGui {
             } catch (Throwable ignored) {
                 skullMeta.setOwningPlayer(player);
             }
-            skullMeta.displayName(miniMessage.deserialize("<gold><bold>預覽: " + option.getHeadAmount() + " 個個人頭顱</bold></gold>"));
+            skullMeta.displayName(miniMessage.deserialize("<gold><bold>獲得: " + formatAmountDescription(option.getHeadAmount()) + " 個人頭顱</bold></gold>"));
             skullMeta.lore(List.of(
-                    miniMessage.deserialize("<gray>這是你即將獲得的皮膚外觀頭顱。</gray>"),
-                    miniMessage.deserialize("<green>點擊亦可確認兌換！</green>")
+                    miniMessage.deserialize("<gray>這是你即將獲得的皮膚外觀頭顱預覽。</gray>"),
+                    miniMessage.deserialize("<gray>數量超過 64 個時將自動為您分組打包。</gray>"),
+                    Component.empty(),
+                    miniMessage.deserialize("<green>點擊此處亦可確認兌換！</green>")
             ));
             item.setItemMeta(skullMeta);
         }
@@ -229,5 +232,20 @@ public class HeadShopGui {
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    /**
+     * 格式化數量描述（當數量超過 64 個時標註組數）
+     */
+    private String formatAmountDescription(int amount) {
+        if (amount <= 64) {
+            return amount + " 個";
+        }
+        int stacks = amount / 64;
+        int rem = amount % 64;
+        if (rem == 0) {
+            return amount + " 個 (" + stacks + " 組)";
+        }
+        return amount + " 個 (" + stacks + " 組 + " + rem + " 個)";
     }
 }
