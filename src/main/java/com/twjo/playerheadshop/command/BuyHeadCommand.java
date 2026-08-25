@@ -3,12 +3,9 @@ package com.twjo.playerheadshop.command;
 import com.twjo.playerheadshop.config.PluginConfig;
 import com.twjo.playerheadshop.gui.HeadShopGui;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -17,7 +14,7 @@ import java.util.List;
 /**
  * 處理 /buyhead 指令與 Tab 補全
  */
-public class BuyHeadCommand implements CommandExecutor, TabCompleter {
+public class BuyHeadCommand extends Command {
 
     private static final String PERMISSION_USE = "playerheadshop.use";
     private static final String PERMISSION_ADMIN = "playerheadshop.admin";
@@ -26,12 +23,14 @@ public class BuyHeadCommand implements CommandExecutor, TabCompleter {
     private final HeadShopGui gui;
 
     public BuyHeadCommand(PluginConfig config, HeadShopGui gui) {
+        super("buyhead", "購買自己的玩家頭顱", "/buyhead [reload]", List.of("playerheadshop", "headshop"));
         this.config = config;
         this.gui = gui;
+        setPermission(PERMISSION_USE);
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
         // 處理重載子指令 /buyhead reload
         if (args.length > 0 && args[0].equalsIgnoreCase("reload")) {
             if (!sender.hasPermission(PERMISSION_ADMIN)) {
@@ -61,7 +60,7 @@ public class BuyHeadCommand implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+    public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
             List<String> completions = new ArrayList<>();
             if (sender.hasPermission(PERMISSION_ADMIN) && "reload".startsWith(args[0].toLowerCase())) {

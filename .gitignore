@@ -4,12 +4,6 @@
 # Log file
 *.log
 
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
 # Package Files #
 *.jar
 *.war
@@ -47,3 +41,17 @@ build/
 .classpath
 .project
 .settings/
+
+# Test Server runtime files
+test-server/world/
+test-server/world_nether/
+test-server/world_the_end/
+test-server/logs/
+test-server/cache/
+test-server/libraries/
+test-server/versions/
+test-server/config/
+test-server/bundler/
+test-server/*.jar
+test-server/plugins/PlayerHeadShop/
+test-server/.paper-nms/

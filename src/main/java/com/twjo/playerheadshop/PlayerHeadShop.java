@@ -5,7 +5,6 @@ import com.twjo.playerheadshop.config.PluginConfig;
 import com.twjo.playerheadshop.gui.HeadShopGui;
 import com.twjo.playerheadshop.gui.HeadShopListener;
 import com.twjo.playerheadshop.service.HeadShopService;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
@@ -33,15 +32,9 @@ public final class PlayerHeadShop extends JavaPlugin {
         // 註冊事件監聽器
         getServer().getPluginManager().registerEvents(new HeadShopListener(this.headShopService), this);
 
-        // 註冊指令與 Tab 補全
+        // 註冊指令至伺服器 CommandMap (相容 Paper 現代架構與傳統伺服器)
         BuyHeadCommand buyHeadCommand = new BuyHeadCommand(this.pluginConfig, this.headShopGui);
-        PluginCommand command = getCommand("buyhead");
-        if (command != null) {
-            command.setExecutor(buyHeadCommand);
-            command.setTabCompleter(buyHeadCommand);
-        } else {
-            getLogger().warning("無法找到指令 'buyhead'，請檢查 plugin.yml 配置。");
-        }
+        getServer().getCommandMap().register("playerheadshop", buyHeadCommand);
 
         getLogger().info("PlayerHeadShop v" + getPluginMeta().getVersion() + " 已成功加載並啟用！");
     }
