@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "com.twjo"
-version = "1.0.0"
+version = "2.0.0-beta"
 description = "A lightweight Paper/Folia Minecraft plugin to purchase player heads with custom items, Vault economy, and GUI."
 
 java {
