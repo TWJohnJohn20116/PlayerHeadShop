@@ -1,0 +1,74 @@
+package com.twjo.playerheadshop.command;
+
+import com.twjo.playerheadshop.config.PluginConfig;
+import com.twjo.playerheadshop.gui.HeadShopGui;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * 處理 /buyhead 指令與 Tab 補全
+ */
+public class BuyHeadCommand implements CommandExecutor, TabCompleter {
+
+    private static final String PERMISSION_USE = "playerheadshop.use";
+    private static final String PERMISSION_ADMIN = "playerheadshop.admin";
+
+    private final PluginConfig config;
+    private final HeadShopGui gui;
+
+    public BuyHeadCommand(PluginConfig config, HeadShopGui gui) {
+        this.config = config;
+        this.gui = gui;
+    }
+
+    @Override
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        // 處理重載子指令 /buyhead reload
+        if (args.length > 0 && args[0].equalsIgnoreCase("reload")) {
+            if (!sender.hasPermission(PERMISSION_ADMIN)) {
+                config.sendNoPermission(sender);
+                return true;
+            }
+            config.reload();
+            config.sendReloadSuccess(sender);
+            return true;
+        }
+
+        // 開啟 GUI 指令限遊戲內玩家使用
+        if (!(sender instanceof Player player)) {
+            config.sendPlayerOnly(sender);
+            return true;
+        }
+
+        // 檢查一般玩家使用權限
+        if (!player.hasPermission(PERMISSION_USE)) {
+            config.sendNoPermission(player);
+            return true;
+        }
+
+        // 開啟頭顱商店 GUI
+        gui.open(player);
+        return true;
+    }
+
+    @Override
+    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        if (args.length == 1) {
+            List<String> completions = new ArrayList<>();
+            if (sender.hasPermission(PERMISSION_ADMIN) && "reload".startsWith(args[0].toLowerCase())) {
+                completions.add("reload");
+            }
+            return completions;
+        }
+        return Collections.emptyList();
+    }
+}
