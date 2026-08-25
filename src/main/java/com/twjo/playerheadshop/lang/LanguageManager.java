@@ -3,7 +3,6 @@ package com.twjo.playerheadshop.lang;
 import com.twjo.playerheadshop.PlayerHeadShop;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -192,5 +191,21 @@ public class LanguageManager {
         return pattern.replace("<amount>", String.valueOf(amount))
                       .replace("<stacks>", String.valueOf(stacks))
                       .replace("<rem>", String.valueOf(rem));
+    }
+
+    /**
+     * 本地化格式化經驗等級
+     */
+    public String formatExpLevel(CommandSender sender, int levels) {
+        String pattern = getRaw(sender, "units.exp-level", "<amount> 等級");
+        return pattern.replace("<amount>", String.valueOf(levels));
+    }
+
+    /**
+     * 本地化格式化經驗點數
+     */
+    public String formatExpPoints(CommandSender sender, int points) {
+        String pattern = getRaw(sender, "units.exp-points", "<amount> 點經驗");
+        return pattern.replace("<amount>", String.valueOf(points));
     }
 }

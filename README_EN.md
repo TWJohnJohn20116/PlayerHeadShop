@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>A lightweight Minecraft plugin for Paper / Folia 1.21.4+ (Java 21) to purchase custom player heads.</b><br>
-  Features chest GUI menu, real-time player skin preview, deposit trade GUI, transaction logs & admin history lookup, and complete i18n support.
+  Features chest GUI menu, real-time player skin preview, Items / Vault / EXP Level / EXP Points multi-payments, auto-layout, transaction logs & admin history lookup, and complete i18n support.
 </p>
 
 <p align="center">
@@ -27,15 +27,17 @@
 ## 🌟 Features
 
 - **Interactive Chest GUI**: Type `/buyhead` to open an intuitive chest shop menu.
-- **Deposit & Trade GUI**: Dedicated deposit interface where players actively place items to complete the exchange.
-- **Multi-Slot Support (> 64 items)**: 6 input deposit slots support single trades requiring more than 64 items across multiple stacks.
+- **Intelligent Auto-Layout**: If `slot:` is omitted in `config.yml`, the plugin automatically calculates a centered and symmetrical layout!
+- **Four Payment Modes**:
+  - `ITEM`: Physical item payment (e.g. Diamonds, Emeralds) with dedicated deposit trade GUI.
+  - `VAULT`: Server economy currency (instant deduction, soft dependency on Vault).
+  - `EXP_LEVEL`: Experience levels (directly deducts player levels, e.g. 5 levels).
+  - `EXP_POINTS`: Exact experience points (calculates and deducts raw XP points, e.g. 300 points).
 - **Dynamic Skin Preview**: Head icons dynamically render the current viewer's Minecraft skin (`PLAYER_HEAD`).
-- **Multi-Tier Pricing Options**: Fully customizable trade options in `config.yml` (custom cost item, amount, head amount, display name, and lore per slot).
-- **100% Anti-Loss & Anti-Dupe Protection**: Unused items in the deposit slots are automatically refunded to the player upon closing or cancellation.
-- **SQLite Transaction History**: Built-in async SQLite database records every transaction with timestamp, player, and cost, viewable by admins anytime.
+- **100% Anti-Loss & Anti-Dupe Protection**: Unused items in deposit slots are refunded to the player upon closing.
+- **SQLite Transaction History**: Built-in async SQLite database records every transaction with timestamp, player, cost type (`ITEM`, `VAULT`, `EXP_LEVEL`, `EXP_POINTS`), viewable by admins anytime.
 - **Complete i18n Multi-Language Support**: Built-in Traditional Chinese (`zh_TW`), Simplified Chinese (`zh_CN`), and English (`en_US`) with automatic client language detection (`language: "auto"`).
-- **Native Folia Support**: Thread-safe execution under Folia regionized multi-threading (`folia-supported: true`).
-- **In-Game Hot Reload**: Reload configuration and language files instantly with `/buyhead reload`.
+- **Native Folia Support**: Thread-safe execution under Folia regionized multi-threading.
 
 ---
 
@@ -49,28 +51,14 @@
 
 ---
 
-## 🔐 Permissions
-
-| Permission Node | Description | Default |
-| :--- | :--- | :--- |
-| `playerheadshop.use` | Allows players to use `/buyhead` to open the shop | `true` (All players) |
-| `playerheadshop.admin` | Allows administrators to run `/buyhead reload` and `/buyhead history` | `op` (Operators) |
-
----
-
-## ⚙️ Configuration (`config.yml`)
+## ⚙️ Configuration Example (`config.yml`)
 
 ```yaml
 # =======================================================
 #               PlayerHeadShop Configuration
 # =======================================================
 
-# Language Setting
-# Options:
-#   "auto"  - Automatically detects per-player Minecraft client language
-#   "zh_TW" - Force Traditional Chinese
-#   "zh_CN" - Force Simplified Chinese
-#   "en_US" - Force English
+# Language Setting (auto / zh_TW / zh_CN / en_US)
 language: "auto"
 
 # GUI Chest Interface Settings
@@ -81,26 +69,28 @@ gui:
     material: "GRAY_STAINED_GLASS_PANE"
     display-name: " "
 
-# Multi-Option Pricing List
-# slot: Chest inventory slot index (0 ~ 53, e.g. 0 ~ 26 for 3 rows)
-# cost-item: Required payment material (Valid Bukkit Material, e.g. DIAMOND, EMERALD, GOLD_INGOT)
-# cost-amount: Required payment amount (Amounts > 64 can be placed across deposit slots)
-# head-amount: Amount of player heads given (Amounts > 64 are auto-bundled in stacks)
+# Multi-Option Pricing List (Auto-layout if slot is omitted)
 options:
-  - slot: 11
+  # Option 1: Physical Item (Diamond)
+  - cost-type: "ITEM"
     cost-item: "DIAMOND"
     cost-amount: 1
     head-amount: 1
 
-  - slot: 13
-    cost-item: "DIAMOND"
-    cost-amount: 7
-    head-amount: 8
+  # Option 2: Vault Currency ($500)
+  - cost-type: "VAULT"
+    cost-amount: 500
+    head-amount: 1
 
-  - slot: 15
-    cost-item: "DIAMOND"
-    cost-amount: 50
-    head-amount: 64
+  # Option 3: 5 Experience Levels
+  - cost-type: "EXP_LEVEL"
+    cost-amount: 5
+    head-amount: 1
+
+  # Option 4: 300 Experience Points
+  - cost-type: "EXP_POINTS"
+    cost-amount: 300
+    head-amount: 1
 ```
 
 ---
@@ -112,9 +102,3 @@ options:
 mvn clean package
 ```
 The compiled JAR file will be located at `target/PlayerHeadShop-1.0.0.jar`.
-
-### Using Gradle
-```bash
-./gradlew build
-```
-The compiled JAR file will be located at `build/libs/PlayerHeadShop-1.0.0.jar`.

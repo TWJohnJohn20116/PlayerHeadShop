@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.logging.Level;
 
 /**
- * 管理 PlayerHeadShop 的主設定檔讀取、Vault 類型解析與 GUI 智慧自動排版
+ * 管理 PlayerHeadShop 的主設定檔讀取、多種支付模式解析與 GUI 智慧自動排版
  */
 public class PluginConfig {
 
@@ -48,7 +48,7 @@ public class PluginConfig {
         this.fillerMaterial = (matchedFiller != null && !matchedFiller.isAir()) ? matchedFiller : Material.GRAY_STAINED_GLASS_PANE;
         this.fillerDisplayName = config.getString("gui.filler.display-name", " ");
 
-        // 3. 讀取 options 兌換方案清單（支援手動 Slot 與未填寫時的智慧自動排版）
+        // 3. 讀取 options 兌換方案清單
         int maxSlots = this.guiRows * 9;
         List<ShopOption> manualOptions = new ArrayList<>();
         List<ShopOption> autoOptions = new ArrayList<>();
@@ -112,19 +112,11 @@ public class PluginConfig {
             slot = -1;
         }
 
-        // 判斷支付類型 (ITEM 或 VAULT)
-        ShopOption.CostType costType = ShopOption.CostType.ITEM;
-        if (entry.containsKey("cost-type")) {
-            String typeStr = String.valueOf(entry.get("cost-type")).toUpperCase();
-            if (typeStr.equals("VAULT") || typeStr.equals("MONEY") || typeStr.equals("ECONOMY")) {
-                costType = ShopOption.CostType.VAULT;
-            }
-        }
+        // 判斷支付類型 (ITEM, VAULT, EXP_LEVEL, EXP_POINTS)
+        String typeStr = entry.containsKey("cost-type") ? String.valueOf(entry.get("cost-type")).toUpperCase() : "ITEM";
+        String costItemStr = entry.containsKey("cost-item") ? String.valueOf(entry.get("cost-item")).toUpperCase() : "DIAMOND";
 
-        String costItemStr = entry.containsKey("cost-item") ? String.valueOf(entry.get("cost-item")) : "DIAMOND";
-        if (costItemStr.equalsIgnoreCase("VAULT") || costItemStr.equalsIgnoreCase("MONEY") || costItemStr.equalsIgnoreCase("ECONOMY")) {
-            costType = ShopOption.CostType.VAULT;
-        }
+        ShopOption.CostType costType = resolveCostType(typeStr, costItemStr);
 
         Material costItem = Material.matchMaterial(costItemStr);
         if (costType == ShopOption.CostType.ITEM && (costItem == null || costItem.isAir())) {
@@ -157,16 +149,10 @@ public class PluginConfig {
             slot = -1;
         }
 
-        ShopOption.CostType costType = ShopOption.CostType.ITEM;
         String typeStr = sec.getString("cost-type", "ITEM").toUpperCase();
-        if (typeStr.equals("VAULT") || typeStr.equals("MONEY") || typeStr.equals("ECONOMY")) {
-            costType = ShopOption.CostType.VAULT;
-        }
+        String costItemStr = sec.getString("cost-item", "DIAMOND").toUpperCase();
 
-        String costItemStr = sec.getString("cost-item", "DIAMOND");
-        if (costItemStr.equalsIgnoreCase("VAULT") || costItemStr.equalsIgnoreCase("MONEY") || costItemStr.equalsIgnoreCase("ECONOMY")) {
-            costType = ShopOption.CostType.VAULT;
-        }
+        ShopOption.CostType costType = resolveCostType(typeStr, costItemStr);
 
         Material costItem = Material.matchMaterial(costItemStr);
         if (costType == ShopOption.CostType.ITEM && (costItem == null || costItem.isAir())) {
@@ -179,6 +165,22 @@ public class PluginConfig {
         List<String> lore = sec.contains("lore") ? sec.getStringList("lore") : null;
 
         return new ShopOption(slot, costType, displayName, lore, costItem, costAmount, headAmount);
+    }
+
+    private ShopOption.CostType resolveCostType(String typeStr, String costItemStr) {
+        if (typeStr.equals("VAULT") || typeStr.equals("MONEY") || typeStr.equals("ECONOMY")
+                || costItemStr.equals("VAULT") || costItemStr.equals("MONEY") || costItemStr.equals("ECONOMY")) {
+            return ShopOption.CostType.VAULT;
+        }
+        if (typeStr.equals("EXP_LEVEL") || typeStr.equals("LEVEL") || typeStr.equals("EXP_LVL") || typeStr.equals("LVL")
+                || costItemStr.equals("EXP_LEVEL") || costItemStr.equals("LEVEL") || costItemStr.equals("LVL")) {
+            return ShopOption.CostType.EXP_LEVEL;
+        }
+        if (typeStr.equals("EXP_POINTS") || typeStr.equals("EXP") || typeStr.equals("POINTS") || typeStr.equals("XP")
+                || costItemStr.equals("EXP_POINTS") || costItemStr.equals("EXP") || costItemStr.equals("POINTS") || costItemStr.equals("XP")) {
+            return ShopOption.CostType.EXP_POINTS;
+        }
+        return ShopOption.CostType.ITEM;
     }
 
     /**

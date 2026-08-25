@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 負責構建與開啟 PlayerHeadShop 的箱子 GUI 介面（支援多語言、Vault 貨幣與自動排版）
+ * 負責構建與開啟 PlayerHeadShop 的箱子 GUI 介面（支援物品、Vault、經驗等級與經驗點數等多種支付模式）
  */
 public class HeadShopGui {
 
@@ -151,12 +151,32 @@ public class HeadShopGui {
                 skullMeta.setOwningPlayer(player);
             }
 
-            String formattedCost = option.isVault()
-                    ? plugin.getVaultHook().format(option.getCostAmount())
-                    : lang.formatAmount(player, option.getCostAmountInt());
-            String costItemName = option.isVault()
-                    ? plugin.getVaultHook().getCurrencyName()
-                    : option.getCostItem().name();
+            String formattedCost;
+            String costItemName;
+            String defaultLoreKey;
+
+            switch (option.getCostType()) {
+                case VAULT -> {
+                    formattedCost = plugin.getVaultHook().format(option.getCostAmount());
+                    costItemName = plugin.getVaultHook().getCurrencyName();
+                    defaultLoreKey = "gui.vault-button.lore";
+                }
+                case EXP_LEVEL -> {
+                    formattedCost = lang.formatExpLevel(player, option.getCostAmountInt());
+                    costItemName = lang.formatExpLevel(player, option.getCostAmountInt());
+                    defaultLoreKey = "gui.exp-level-button.lore";
+                }
+                case EXP_POINTS -> {
+                    formattedCost = lang.formatExpPoints(player, option.getCostAmountInt());
+                    costItemName = lang.formatExpPoints(player, option.getCostAmountInt());
+                    defaultLoreKey = "gui.exp-points-button.lore";
+                }
+                default -> {
+                    formattedCost = lang.formatAmount(player, option.getCostAmountInt());
+                    costItemName = option.getCostItem().name();
+                    defaultLoreKey = "gui.confirm-button.lore";
+                }
+            }
 
             TagResolver[] resolvers = new TagResolver[]{
                     Placeholder.parsed("player", player.getName()),
@@ -184,8 +204,7 @@ public class HeadShopGui {
                 }
                 skullMeta.lore(loreComponents);
             } else {
-                String loreKey = option.isVault() ? "gui.vault-button.lore" : "gui.confirm-button.lore";
-                List<String> rawLore = lang.getRawList(player, loreKey);
+                List<String> rawLore = lang.getRawList(player, defaultLoreKey);
                 List<Component> loreComponents = new ArrayList<>();
                 for (String line : rawLore) {
                     loreComponents.add(miniMessage.deserialize(line, resolvers));

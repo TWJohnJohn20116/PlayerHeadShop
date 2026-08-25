@@ -6,8 +6,12 @@ messages:
   prefix: "<gray>[<gold>HeadShop</gold>]</gray> "
   success: "<green>你花費了 <gold><cost_amount> <cost_item></gold> 購買了 <gold><head_amount> 自己的頭顱！</green>"
   vault-success: "<green>你花費了 <gold><cost_amount></gold> 購買了 <gold><head_amount> 自己的頭顱！</green>"
+  exp-level-success: "<green>你消耗了 <gold><cost_amount></gold> 購買了 <gold><head_amount> 自己的頭顱！</green>"
+  exp-points-success: "<green>你消耗了 <gold><cost_amount></gold> 購買了 <gold><head_amount> 自己的頭顱！</green>"
   not-enough-items: "<red>物品不足！需要 <gold><required> <item></gold>，你目前只有 <gold><current></gold>（缺少 <missing>）。</red>"
   not-enough-money: "<red>金幣不足！需要 <gold><required></gold>，你目前只有 <gold><current></gold>（缺少 <missing>）。</red>"
+  not-enough-exp-level: "<red>經驗等級不足！需要 <gold><required></gold>，你目前只有 <gold><current></gold>（缺少 <missing>）。</red>"
+  not-enough-exp-points: "<red>經驗點數不足！需要 <gold><required></gold>，你目前只有 <gold><current></gold>（缺少 <missing>）。</red>"
   vault-disabled: "<red>伺服器未啟用 Vault 經濟系統，無法使用貨幣購買！</red>"
   inventory-full: "<yellow>你的背包已滿，溢出的頭顱已掉落在你的腳下！</yellow>"
   reload-success: "<green>PlayerHeadShop 設定檔與語言檔已成功重新加載！</green>"
@@ -43,6 +47,22 @@ gui:
       - "<white>花費: <gold><cost_amount></gold></white>"
       - ""
       - "<green>▶ 點擊立即扣款購買！</green>"
+  exp-level-button:
+    lore:
+      - "<gray>購買印有自身皮膚外觀的頭顱。"
+      - ""
+      - "<white>獲得: <gold><head_amount> 你的個人頭顱</gold></white>"
+      - "<white>消耗: <green><cost_amount></green></white>"
+      - ""
+      - "<green>▶ 點擊立即扣除等級購買！</green>"
+  exp-points-button:
+    lore:
+      - "<gray>購買印有自身皮膚外觀的頭顱。"
+      - ""
+      - "<white>獲得: <gold><head_amount> 你的個人頭顱</gold></white>"
+      - "<white>消耗: <green><cost_amount></green></white>"
+      - ""
+      - "<green>▶ 點擊立即扣除經驗點數購買！</green>"
   preview-head:
     name: "<gold><bold>獲得: <head_amount> 個人頭顱</bold></gold>"
     lore:
@@ -59,3 +79,5 @@ units:
   item: "<amount> 個"
   stacks-exact: "<amount> 個 (<stacks> 組)"
   stacks-rem: "<amount> 個 (<stacks> 組 + <rem> 個)"
+  exp-level: "<amount> 等級"
+  exp-points: "<amount> 點經驗"

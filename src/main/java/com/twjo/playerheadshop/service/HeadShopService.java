@@ -5,6 +5,7 @@ import com.twjo.playerheadshop.config.ShopOption;
 import com.twjo.playerheadshop.database.DatabaseManager;
 import com.twjo.playerheadshop.gui.DepositGuiHolder;
 import com.twjo.playerheadshop.lang.LanguageManager;
+import com.twjo.playerheadshop.util.ExperienceUtil;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -17,7 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
- * 處理玩家頭顱兌換、背包物品檢查與扣除、Vault 貨幣扣款、放置介面多格扣除、頭顱生成、掉落與交易記錄日誌。
+ * 處理玩家頭顱兌換、背包物品檢查與扣除、Vault 貨幣扣款、經驗等級/點數扣除、放置介面多格扣除、頭顱生成與日誌。
  */
 public class HeadShopService {
 
@@ -88,6 +89,86 @@ public class HeadShopService {
     }
 
     /**
+     * 處理玩家點擊 EXP_LEVEL 經驗等級購買方案
+     */
+    public boolean processExpLevelPurchase(Player player, ShopOption option) {
+        if (player == null || !player.isOnline() || option == null) {
+            return false;
+        }
+
+        int requiredLevel = option.getCostAmountInt();
+        int currentLevel = player.getLevel();
+        int headAmount = option.getHeadAmount();
+
+        if (currentLevel < requiredLevel) {
+            int missingLevel = requiredLevel - currentLevel;
+            lang.sendMessage(player, "not-enough-exp-level",
+                    Placeholder.parsed("required", lang.formatExpLevel(player, requiredLevel)),
+                    Placeholder.parsed("current", lang.formatExpLevel(player, currentLevel)),
+                    Placeholder.parsed("missing", lang.formatExpLevel(player, missingLevel))
+            );
+            try {
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+            } catch (Throwable ignored) {}
+            return false;
+        }
+
+        // 扣除等級
+        player.setLevel(currentLevel - requiredLevel);
+
+        // 發放頭顱
+        giveHeads(player, headAmount, requiredLevel, "EXP_LEVEL");
+
+        // 發送成功訊息
+        lang.sendMessage(player, "exp-level-success",
+                Placeholder.parsed("cost_amount", lang.formatExpLevel(player, requiredLevel)),
+                Placeholder.parsed("head_amount", lang.formatAmount(player, headAmount))
+        );
+
+        return true;
+    }
+
+    /**
+     * 處理玩家點擊 EXP_POINTS 經驗點數購買方案
+     */
+    public boolean processExpPointsPurchase(Player player, ShopOption option) {
+        if (player == null || !player.isOnline() || option == null) {
+            return false;
+        }
+
+        int requiredPoints = option.getCostAmountInt();
+        int currentTotalPoints = ExperienceUtil.getPlayerTotalExp(player);
+        int headAmount = option.getHeadAmount();
+
+        if (currentTotalPoints < requiredPoints) {
+            int missingPoints = requiredPoints - currentTotalPoints;
+            lang.sendMessage(player, "not-enough-exp-points",
+                    Placeholder.parsed("required", lang.formatExpPoints(player, requiredPoints)),
+                    Placeholder.parsed("current", lang.formatExpPoints(player, currentTotalPoints)),
+                    Placeholder.parsed("missing", lang.formatExpPoints(player, missingPoints))
+            );
+            try {
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+            } catch (Throwable ignored) {}
+            return false;
+        }
+
+        // 安全扣除經驗點數並同步等級與經驗條
+        ExperienceUtil.deductPlayerExp(player, requiredPoints);
+
+        // 發放頭顱
+        giveHeads(player, headAmount, requiredPoints, "EXP_POINTS");
+
+        // 發送成功訊息
+        lang.sendMessage(player, "exp-points-success",
+                Placeholder.parsed("cost_amount", lang.formatExpPoints(player, requiredPoints)),
+                Placeholder.parsed("head_amount", lang.formatAmount(player, headAmount))
+        );
+
+        return true;
+    }
+
+    /**
      * 處理玩家在主選單直接購買方案的請求
      */
     public boolean processPurchase(Player player, ShopOption option) {
@@ -97,6 +178,14 @@ public class HeadShopService {
 
         if (option.isVault()) {
             return processVaultPurchase(player, option);
+        }
+
+        if (option.isExpLevel()) {
+            return processExpLevelPurchase(player, option);
+        }
+
+        if (option.isExpPoints()) {
+            return processExpPointsPurchase(player, option);
         }
 
         Material costItem = option.getCostItem();

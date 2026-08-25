@@ -6,8 +6,12 @@ messages:
   prefix: "<gray>[<gold>HeadShop</gold>]</gray> "
   success: "<green>You spent <gold><cost_amount> <cost_item></gold> and received <gold><head_amount> of your own heads!</green>"
   vault-success: "<green>You spent <gold><cost_amount></gold> and received <gold><head_amount> of your own heads!</green>"
+  exp-level-success: "<green>You spent <gold><cost_amount></gold> and received <gold><head_amount> of your own heads!</green>"
+  exp-points-success: "<green>You spent <gold><cost_amount></gold> and received <gold><head_amount> of your own heads!</green>"
   not-enough-items: "<red>Not enough items! Required <gold><required> <item></gold>, you only have <gold><current></gold> (Missing <missing>).</red>"
   not-enough-money: "<red>Not enough money! Required <gold><required></gold>, you only have <gold><current></gold> (Missing <missing>).</red>"
+  not-enough-exp-level: "<red>Not enough experience levels! Required <gold><required></gold>, you currently have <gold><current></gold> (Missing <missing>).</red>"
+  not-enough-exp-points: "<red>Not enough experience points! Required <gold><required></gold>, you currently have <gold><current></gold> (Missing <missing>).</red>"
   vault-disabled: "<red>Vault economy system is not enabled on this server!</red>"
   inventory-full: "<yellow>Your inventory was full! Overflow heads have dropped at your feet.</yellow>"
   reload-success: "<green>PlayerHeadShop configuration and language files reloaded successfully!</green>"
@@ -43,6 +47,22 @@ gui:
       - "<white>Cost: <gold><cost_amount></gold></white>"
       - ""
       - "<green>▶ Click to purchase instantly!</green>"
+  exp-level-button:
+    lore:
+      - "<gray>Purchase a head with your own skin."
+      - ""
+      - "<white>Receive: <gold><head_amount> of your own head(s)</gold></white>"
+      - "<white>Cost: <green><cost_amount></green></white>"
+      - ""
+      - "<green>▶ Click to purchase with levels!</green>"
+  exp-points-button:
+    lore:
+      - "<gray>Purchase a head with your own skin."
+      - ""
+      - "<white>Receive: <gold><head_amount> of your own head(s)</gold></white>"
+      - "<white>Cost: <green><cost_amount></green></white>"
+      - ""
+      - "<green>▶ Click to purchase with exp points!</green>"
   preview-head:
     name: "<gold><bold>Receive: <head_amount> Head(s)</bold></gold>"
     lore:
@@ -59,3 +79,5 @@ units:
   item: "<amount>x"
   stacks-exact: "<amount>x (<stacks> stacks)"
   stacks-rem: "<amount>x (<stacks> stacks + <rem> items)"
+  exp-level: "<amount> Level(s)"
+  exp-points: "<amount> Exp Point(s)"

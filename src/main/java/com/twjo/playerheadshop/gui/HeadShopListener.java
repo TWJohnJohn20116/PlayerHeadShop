@@ -14,7 +14,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.HashMap;
 
 /**
- * 監聽 GUI 點擊、拖曳與關閉事件，支援物品放置兌換與 Vault 貨幣直接扣款
+ * 監聽 GUI 點擊、拖曳與關閉事件，支援物品放置兌換、Vault 貨幣與經驗等級/點數支付
  */
 public class HeadShopListener implements Listener {
 
@@ -42,9 +42,9 @@ public class HeadShopListener implements Listener {
                 int slot = event.getSlot();
                 ShopOption option = holder.getOption(slot);
                 if (option != null) {
-                    if (option.isVault()) {
-                        // Vault 貨幣方案：直接執行扣款購買
-                        headShopService.processVaultPurchase(player, option);
+                    if (option.isDirectPurchase()) {
+                        // Vault 貨幣、經驗等級、經驗點數：直接扣款購買
+                        headShopService.processPurchase(player, option);
                     } else {
                         // 實體物品方案：開啟放置兌換介面
                         headShopGui.openDepositGui(player, option);

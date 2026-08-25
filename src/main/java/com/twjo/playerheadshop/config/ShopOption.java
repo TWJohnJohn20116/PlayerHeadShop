@@ -5,13 +5,15 @@ import org.bukkit.Material;
 import java.util.List;
 
 /**
- * 代表一個頭顱兌換方案的設定資料模型（支援物品與 Vault 貨幣雙軌支付，支援自動排版）
+ * 代表一個頭顱兌換方案的設定資料模型（支援物品、Vault 貨幣、經驗等級與經驗點數支付模式）
  */
 public class ShopOption {
 
     public enum CostType {
         ITEM,
-        VAULT
+        VAULT,
+        EXP_LEVEL,
+        EXP_POINTS
     }
 
     private final int slot;
@@ -50,6 +52,18 @@ public class ShopOption {
 
     public boolean isVault() {
         return costType == CostType.VAULT;
+    }
+
+    public boolean isExpLevel() {
+        return costType == CostType.EXP_LEVEL;
+    }
+
+    public boolean isExpPoints() {
+        return costType == CostType.EXP_POINTS;
+    }
+
+    public boolean isDirectPurchase() {
+        return costType == CostType.VAULT || costType == CostType.EXP_LEVEL || costType == CostType.EXP_POINTS;
     }
 
     public String getDisplayName() {

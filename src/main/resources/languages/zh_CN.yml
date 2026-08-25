@@ -6,8 +6,12 @@ messages:
   prefix: "<gray>[<gold>HeadShop</gold>]</gray> "
   success: "<green>你花费了 <gold><cost_amount> <cost_item></gold> 购买了 <gold><head_amount> 自己的头颅！</green>"
   vault-success: "<green>你花费了 <gold><cost_amount></gold> 购买了 <gold><head_amount> 自己的头颅！</green>"
+  exp-level-success: "<green>你消耗了 <gold><cost_amount></gold> 购买了 <gold><head_amount> 自己的头颅！</green>"
+  exp-points-success: "<green>你消耗了 <gold><cost_amount></gold> 购买了 <gold><head_amount> 自己的头颅！</green>"
   not-enough-items: "<red>物品不足！需要 <gold><required> <item></gold>，你目前只有 <gold><current></gold>（缺少 <missing>）。</red>"
   not-enough-money: "<red>金币不足！需要 <gold><required></gold>，你目前只有 <gold><current></gold>（缺少 <missing>）。</red>"
+  not-enough-exp-level: "<red>经验等级不足！需要 <gold><required></gold>，你目前只有 <gold><current></gold>（缺少 <missing>）。</red>"
+  not-enough-exp-points: "<red>经验点数不足！需要 <gold><required></gold>，你目前只有 <gold><current></gold>（缺少 <missing>）。</red>"
   vault-disabled: "<red>服务器未启用 Vault 经济系统，无法使用货币购买！</red>"
   inventory-full: "<yellow>你的背包已满，溢出的头颅已掉落在你的脚下！</yellow>"
   reload-success: "<green>PlayerHeadShop 配置文件与语言文件已成功重新加载！</green>"
@@ -43,6 +47,22 @@ gui:
       - "<white>花费: <gold><cost_amount></gold></white>"
       - ""
       - "<green>▶ 点击立即扣款购买！</green>"
+  exp-level-button:
+    lore:
+      - "<gray>购买印有自身皮肤外观的头颅。"
+      - ""
+      - "<white>获得: <gold><head_amount> 你的个人头颅</gold></white>"
+      - "<white>消耗: <green><cost_amount></green></white>"
+      - ""
+      - "<green>▶ 点击立即扣除等级购买！</green>"
+  exp-points-button:
+    lore:
+      - "<gray>购买印有自身皮肤外观的头颅。"
+      - ""
+      - "<white>获得: <gold><head_amount> 你的个人头颅</gold></white>"
+      - "<white>消耗: <green><cost_amount></green></white>"
+      - ""
+      - "<green>▶ 点击立即扣除经验点数购买！</green>"
   preview-head:
     name: "<gold><bold>获得: <head_amount> 个人头颅</bold></gold>"
     lore:
@@ -59,3 +79,5 @@ units:
   item: "<amount> 个"
   stacks-exact: "<amount> 个 (<stacks> 组)"
   stacks-rem: "<amount> 个 (<stacks> 组 + <rem> 个)"
+  exp-level: "<amount> 等级"
+  exp-points: "<amount> 点经验"
