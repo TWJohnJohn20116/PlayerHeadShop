@@ -29,8 +29,8 @@ public final class PlayerHeadShop extends JavaPlugin {
         this.headShopService = new HeadShopService(this.pluginConfig);
         this.headShopGui = new HeadShopGui(this.pluginConfig);
 
-        // 註冊事件監聽器
-        getServer().getPluginManager().registerEvents(new HeadShopListener(this.headShopService), this);
+        // 註冊事件監聽器 (包含主選單與放置兌換介面)
+        getServer().getPluginManager().registerEvents(new HeadShopListener(this.headShopService, this.headShopGui), this);
 
         // 註冊指令至伺服器 CommandMap (相容 Paper 現代架構與傳統伺服器)
         BuyHeadCommand buyHeadCommand = new BuyHeadCommand(this.pluginConfig, this.headShopGui);

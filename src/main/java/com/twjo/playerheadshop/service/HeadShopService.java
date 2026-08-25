@@ -2,7 +2,9 @@ package com.twjo.playerheadshop.service;
 
 import com.twjo.playerheadshop.config.PluginConfig;
 import com.twjo.playerheadshop.config.ShopOption;
+import com.twjo.playerheadshop.gui.DepositGuiHolder;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -12,7 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
- * 處理玩家頭顱兌換、背包物品檢查與扣除、頭顱生成與掉落邏輯。
+ * 處理玩家頭顱兌換、背包物品檢查與扣除、放置介面扣除、頭顱生成與掉落邏輯。
  */
 public class HeadShopService {
 
@@ -23,11 +25,7 @@ public class HeadShopService {
     }
 
     /**
-     * 處理玩家購買特定方案頭顱的請求
-     *
-     * @param player 執行購買的玩家
-     * @param option 選擇的兌換方案
-     * @return 購買成功返回 true，否則返回 false
+     * 處理玩家在主選單直接購買方案的請求
      */
     public boolean processPurchase(Player player, ShopOption option) {
         if (player == null || !player.isOnline() || option == null) {
@@ -44,16 +42,74 @@ public class HeadShopService {
         if (currentAmount < requiredAmount) {
             int missingAmount = requiredAmount - currentAmount;
             config.sendNotEnoughItems(player, requiredAmount, costItem.name(), currentAmount, missingAmount);
+            try {
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+            } catch (Throwable ignored) {}
             return false;
         }
 
         // 2. 安全扣除所需物品
         deductItems(player, costItem, requiredAmount);
 
-        // 3. 生成印有該玩家皮膚的頭顱物品堆疊清單
+        // 3. 生成印有該玩家皮膚的頭顱物品堆疊清單並發放
+        giveHeads(player, headAmount, requiredAmount, costItem.name());
+        return true;
+    }
+
+    /**
+     * 處理玩家在放置兌換介面中點擊確認兌換的請求
+     *
+     * @param player 點擊兌換的玩家
+     * @param holder 放置介面的 Holder
+     * @return 兌換成功返回 true，否則返回 false
+     */
+    public boolean processDepositPurchase(Player player, DepositGuiHolder holder) {
+        if (player == null || !player.isOnline() || holder == null) {
+            return false;
+        }
+
+        ShopOption option = holder.getOption();
+        if (option == null) {
+            return false;
+        }
+
+        Material costItem = option.getCostItem();
+        int requiredAmount = option.getCostAmount();
+        int headAmount = option.getHeadAmount();
+
+        // 1. 檢查放置區 (Slot 11) 的物品
+        ItemStack inputItem = holder.getInventory().getItem(DepositGuiHolder.INPUT_SLOT);
+        int currentAmount = (inputItem != null && inputItem.getType() == costItem) ? inputItem.getAmount() : 0;
+
+        if (currentAmount < requiredAmount) {
+            int missingAmount = requiredAmount - currentAmount;
+            config.sendNotEnoughItems(player, requiredAmount, costItem.name(), currentAmount, missingAmount);
+            try {
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+            } catch (Throwable ignored) {}
+            return false;
+        }
+
+        // 2. 扣除放置區中的指定數量
+        if (inputItem != null) {
+            if (inputItem.getAmount() <= requiredAmount) {
+                holder.getInventory().setItem(DepositGuiHolder.INPUT_SLOT, null);
+            } else {
+                inputItem.setAmount(inputItem.getAmount() - requiredAmount);
+            }
+        }
+
+        // 3. 生成頭顱並發放
+        giveHeads(player, headAmount, requiredAmount, costItem.name());
+        return true;
+    }
+
+    /**
+     * 生成頭顱並發放給玩家（處理背包溢出與成功提示）
+     */
+    private void giveHeads(Player player, int headAmount, int costAmount, String costItemName) {
         List<ItemStack> headsToGive = createPlayerHeads(player, headAmount);
 
-        // 4. 嘗試放入玩家背包，若背包已滿則安全掉落至玩家腳下
         boolean hasOverflow = false;
         for (ItemStack headStack : headsToGive) {
             HashMap<Integer, ItemStack> overflow = player.getInventory().addItem(headStack);
@@ -69,9 +125,11 @@ public class HeadShopService {
             config.sendInventoryFull(player);
         }
 
-        // 5. 發送購買成功提示
-        config.sendSuccess(player, requiredAmount, costItem.name(), headAmount);
-        return true;
+        // 發送購買成功提示與音效
+        config.sendSuccess(player, costAmount, costItemName, headAmount);
+        try {
+            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.2f);
+        } catch (Throwable ignored) {}
     }
 
     /**
