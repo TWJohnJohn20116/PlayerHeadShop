@@ -10,6 +10,12 @@
 </p>
 
 <p align="center">
+  <a href="README.md"><b>繁體中文</b></a> •
+  <a href="README_zh_CN.md">简体中文</a> •
+  <a href="README_EN.md">English</a>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Platform-Paper%20%7C%20Folia-brightgreen.svg" alt="Platform" />
   <img src="https://img.shields.io/badge/Minecraft-1.21.4+-orange.svg" alt="Minecraft Version" />
   <img src="https://img.shields.io/badge/Java-21+-blue.svg" alt="Java Version" />
