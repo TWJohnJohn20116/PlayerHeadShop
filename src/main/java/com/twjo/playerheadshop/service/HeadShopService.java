@@ -1,6 +1,7 @@
 package com.twjo.playerheadshop.service;
 
 import com.twjo.playerheadshop.config.ShopOption;
+import com.twjo.playerheadshop.database.DatabaseManager;
 import com.twjo.playerheadshop.gui.DepositGuiHolder;
 import com.twjo.playerheadshop.lang.LanguageManager;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -15,14 +16,16 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
- * 處理玩家頭顱兌換、背包物品檢查與扣除、放置介面多格扣除、頭顱生成與掉落邏輯（整合多語言 i18n 系統）
+ * 處理玩家頭顱兌換、背包物品檢查與扣除、放置介面多格扣除、頭顱生成、掉落與交易記錄日誌。
  */
 public class HeadShopService {
 
     private final LanguageManager lang;
+    private final DatabaseManager databaseManager;
 
-    public HeadShopService(LanguageManager lang) {
+    public HeadShopService(LanguageManager lang, DatabaseManager databaseManager) {
         this.lang = lang;
+        this.databaseManager = databaseManager;
     }
 
     /**
@@ -128,7 +131,7 @@ public class HeadShopService {
     }
 
     /**
-     * 生成頭顱並發放給玩家（處理背包溢出與成功提示）
+     * 生成頭顱並發放給玩家（處理背包溢出、成功提示與非同步日誌記錄）
      */
     private void giveHeads(Player player, int headAmount, int costAmount, String costItemName) {
         List<ItemStack> headsToGive = createPlayerHeads(player, headAmount);
@@ -160,6 +163,11 @@ public class HeadShopService {
         try {
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.2f);
         } catch (Throwable ignored) {}
+
+        // 非同步寫入交易歷史記錄至 SQLite
+        if (databaseManager != null) {
+            databaseManager.logTrade(player.getUniqueId(), player.getName(), costItemName, costAmount, headAmount);
+        }
     }
 
     /**

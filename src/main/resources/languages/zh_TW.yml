@@ -11,6 +11,14 @@ messages:
   no-permission: "<red>你沒有權限使用此指令！</red>"
   player-only: "<red>此指令僅限遊戲內玩家使用。</red>"
 
+  # 兌換歷史記錄
+  history-header: "<gold><bold>=== 頭顱兌換記錄 (第 <page>/<max_page> 頁，共 <total> 筆) ===</bold></gold>"
+  history-player-header: "<gold><bold>=== <player> 的兌換記錄 (第 <page>/<max_page> 頁，共 <total> 筆) ===</bold></gold>"
+  history-entry: "<gray>[<time>]</gray> <yellow><player></yellow> 花費 <aqua><cost_amount> <cost_item></aqua> 兌換了 <gold><head_amount> 頭顱</gold>"
+  history-footer: "<gray>提示: 輸入 <yellow>/buyhead history [玩家] [頁碼]</yellow> 查看更多記錄</gray>"
+  history-empty: "<red>目前查無任何兌換記錄！</red>"
+  history-invalid-page: "<red>無效的頁碼！有效頁碼為 1 ~ <max_page>。</red>"
+
 gui:
   main-title: "<gradient:#FFAA00:#FF5555><bold>自訂頭顱商店</bold></gradient>"
   deposit-title: "<gradient:#FFAA00:#FF5555><bold>放置物品兌換</bold></gradient> <gray>-</gray> <yellow><head_amount></yellow>"

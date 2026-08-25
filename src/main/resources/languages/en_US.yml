@@ -11,6 +11,14 @@ messages:
   no-permission: "<red>You do not have permission to use this command!</red>"
   player-only: "<red>This command can only be used by in-game players.</red>"
 
+  # Trade History
+  history-header: "<gold><bold>=== Head Trade History (Page <page>/<max_page>, Total <total>) ===</bold></gold>"
+  history-player-header: "<gold><bold>=== Trade History for <player> (Page <page>/<max_page>, Total <total>) ===</bold></gold>"
+  history-entry: "<gray>[<time>]</gray> <yellow><player></yellow> spent <aqua><cost_amount> <cost_item></aqua> for <gold><head_amount> Head(s)</gold>"
+  history-footer: "<gray>Tip: Type <yellow>/buyhead history [player] [page]</yellow> for more</gray>"
+  history-empty: "<red>No trade records found!</red>"
+  history-invalid-page: "<red>Invalid page number! Valid range is 1 ~ <max_page>.</red>"
+
 gui:
   main-title: "<gradient:#FFAA00:#FF5555><bold>Player Head Shop</bold></gradient>"
   deposit-title: "<gradient:#FFAA00:#FF5555><bold>Deposit & Trade</bold></gradient> <gray>-</gray> <yellow><head_amount></yellow>"

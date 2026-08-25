@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>A lightweight Minecraft plugin for Paper / Folia 1.21.4+ (Java 21) to purchase custom player heads.</b><br>
-  Features chest GUI menu, real-time player skin preview, multi-tier pricing options, and MiniMessage text formatting.
+  Features chest GUI menu, real-time player skin preview, deposit trade GUI, transaction logs & admin history lookup, and complete i18n support.
 </p>
 
 <p align="center">
@@ -27,14 +27,15 @@
 ## 🌟 Features
 
 - **Interactive Chest GUI**: Type `/buyhead` to open an intuitive chest shop menu.
+- **Deposit & Trade GUI**: Dedicated deposit interface where players actively place items to complete the exchange.
+- **Multi-Slot Support (> 64 items)**: 6 input deposit slots support single trades requiring more than 64 items across multiple stacks.
 - **Dynamic Skin Preview**: Head icons dynamically render the current viewer's Minecraft skin (`PLAYER_HEAD`).
 - **Multi-Tier Pricing Options**: Fully customizable trade options in `config.yml` (custom cost item, amount, head amount, display name, and lore per slot).
-- **Filler Glass Panes**: Fill empty GUI slots with custom colored glass panes for a clean aesthetic.
-- **Strict Security & Anti-Dupe**: Comprehensive `InventoryClickListener` and `InventoryDragEvent` handling to prevent item stealing, shift-clicking, or hotkey swapping.
-- **Inventory Overflow Protection**: When a player's inventory is full, purchased heads safely drop at their feet (`dropItemNaturally`).
+- **100% Anti-Loss & Anti-Dupe Protection**: Unused items in the deposit slots are automatically refunded to the player upon closing or cancellation.
+- **SQLite Transaction History**: Built-in async SQLite database records every transaction with timestamp, player, and cost, viewable by admins anytime.
+- **Complete i18n Multi-Language Support**: Built-in Traditional Chinese (`zh_TW`), Simplified Chinese (`zh_CN`), and English (`en_US`) with automatic client language detection (`language: "auto"`).
 - **Native Folia Support**: Thread-safe execution under Folia regionized multi-threading (`folia-supported: true`).
-- **MiniMessage Formatting**: Full Kyori Adventure MiniMessage support (gradients, colors, hover/click events, dynamic placeholders).
-- **In-Game Hot Reload**: Reload configuration and GUI setup instantly with `/buyhead reload`.
+- **In-Game Hot Reload**: Reload configuration and language files instantly with `/buyhead reload`.
 
 ---
 
@@ -43,7 +44,8 @@
 | Command | Aliases | Description | Default Permission |
 | :--- | :--- | :--- | :--- |
 | `/buyhead` | `/playerheadshop`, `/headshop` | Open the Player Head Shop GUI | `playerheadshop.use` (Everyone) |
-| `/buyhead reload` | - | Reload `config.yml` configuration and options | `playerheadshop.admin` (OP) |
+| `/buyhead history [player] [page]` | `/buyhead logs`, `/buyhead log` | View global or player-specific trade history | `playerheadshop.admin` (OP) |
+| `/buyhead reload` | - | Reload `config.yml` configuration and language files | `playerheadshop.admin` (OP) |
 
 ---
 
@@ -52,7 +54,7 @@
 | Permission Node | Description | Default |
 | :--- | :--- | :--- |
 | `playerheadshop.use` | Allows players to use `/buyhead` to open the shop | `true` (All players) |
-| `playerheadshop.admin` | Allows administrators to run `/buyhead reload` | `op` (Operators) |
+| `playerheadshop.admin` | Allows administrators to run `/buyhead reload` and `/buyhead history` | `op` (Operators) |
 
 ---
 
@@ -63,9 +65,16 @@
 #               PlayerHeadShop Configuration
 # =======================================================
 
+# Language Setting
+# Options:
+#   "auto"  - Automatically detects per-player Minecraft client language
+#   "zh_TW" - Force Traditional Chinese
+#   "zh_CN" - Force Simplified Chinese
+#   "en_US" - Force English
+language: "auto"
+
 # GUI Chest Interface Settings
 gui:
-  title: "<gradient:#FFAA00:#FF5555><bold>Player Head Shop</bold></gradient>"
   rows: 3
   filler:
     enabled: true
@@ -74,61 +83,24 @@ gui:
 
 # Multi-Option Pricing List
 # slot: Chest inventory slot index (0 ~ 53, e.g. 0 ~ 26 for 3 rows)
-# display-name: Item display name (Supports MiniMessage format & placeholders)
-# lore: Item lore description lines (Supports MiniMessage format & placeholders)
 # cost-item: Required payment material (Valid Bukkit Material, e.g. DIAMOND, EMERALD, GOLD_INGOT)
-# cost-amount: Required payment amount
-# head-amount: Amount of player heads given
+# cost-amount: Required payment amount (Amounts > 64 can be placed across deposit slots)
+# head-amount: Amount of player heads given (Amounts > 64 are auto-bundled in stacks)
 options:
   - slot: 11
-    display-name: "<yellow><bold>1x Player Head</bold></yellow>"
-    lore:
-      - "<gray>Purchase a head with your own skin."
-      - ""
-      - "<white>Receive: <gold>1x Head</gold></white>"
-      - "<white>Cost: <aqua><cost_amount>x <cost_item></aqua></white>"
-      - ""
-      - "<green>▶ Click to purchase!</green>"
     cost-item: "DIAMOND"
     cost-amount: 1
     head-amount: 1
 
   - slot: 13
-    display-name: "<gold><bold>8x Player Heads (Bundle)</bold></gold>"
-    lore:
-      - "<gray>Purchase 8 player heads in a bundle."
-      - ""
-      - "<white>Receive: <gold>8x Heads</gold></white>"
-      - "<white>Cost: <aqua><cost_amount>x <cost_item></aqua></white>"
-      - ""
-      - "<green>▶ Click to purchase!</green>"
     cost-item: "DIAMOND"
     cost-amount: 7
     head-amount: 8
 
   - slot: 15
-    display-name: "<light_purple><bold>64x Player Heads (Stack Box)</bold></light_purple>"
-    lore:
-      - "<gray>A full stack of 64 heads for building!"
-      - ""
-      - "<white>Receive: <gold>64x Heads</gold></white>"
-      - "<white>Cost: <aqua><cost_amount>x <cost_item></aqua></white>"
-      - ""
-      - "<green>▶ Click to purchase!</green>"
     cost-item: "DIAMOND"
     cost-amount: 50
     head-amount: 64
-
-# Custom Messages (Supports MiniMessage format)
-# Supported Placeholders: <amount>, <item>, <cost_amount>, <cost_item>, <head_amount>, <required>, <current>, <missing>, <player>
-messages:
-  prefix: "<gray>[<gold>HeadShop</gold>]</gray> "
-  success: "<green>You spent <gold><cost_amount>x <cost_item></gold> and received <gold><head_amount>x</gold> of your own heads!</green>"
-  not-enough-items: "<red>Not enough items! Required <gold><required>x <item></gold>, you only have <gold><current>x</gold> (Missing <missing>x).</red>"
-  inventory-full: "<yellow>Your inventory was full! The overflow heads have been dropped at your feet.</yellow>"
-  reload-success: "<green>PlayerHeadShop configuration successfully reloaded!</green>"
-  no-permission: "<red>You do not have permission to execute this command!</red>"
-  player-only: "<red>This command can only be executed by in-game players.</red>"
 ```
 
 ---
