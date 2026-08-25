@@ -3,7 +3,9 @@ version: '1.0.0'
 main: com.twjo.playerheadshop.PlayerHeadShop
 api-version: '1.21'
 folia-supported: true
-description: A lightweight Paper/Folia Minecraft plugin to purchase player heads with custom items.
+softdepend:
+  - Vault
+description: A lightweight Paper/Folia Minecraft plugin to purchase player heads with custom items, Vault economy, and GUI.
 author: TW_Jo
 
 commands:
@@ -12,12 +14,12 @@ commands:
     aliases:
       - playerheadshop
       - headshop
-    usage: /<command> [reload]
+    usage: /<command> [reload|history]
 
 permissions:
   playerheadshop.use:
     description: 允許玩家使用 /buyhead 購買自己的頭顱
     default: true
   playerheadshop.admin:
-    description: 允許管理員重新加載 PlayerHeadShop 設定檔
+    description: 允許管理員重新加載 PlayerHeadShop 設定檔與查詢交易記錄
     default: op

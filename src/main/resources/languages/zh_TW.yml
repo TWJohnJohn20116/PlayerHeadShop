@@ -5,7 +5,10 @@
 messages:
   prefix: "<gray>[<gold>HeadShop</gold>]</gray> "
   success: "<green>你花費了 <gold><cost_amount> <cost_item></gold> 購買了 <gold><head_amount> 自己的頭顱！</green>"
+  vault-success: "<green>你花費了 <gold><cost_amount></gold> 購買了 <gold><head_amount> 自己的頭顱！</green>"
   not-enough-items: "<red>物品不足！需要 <gold><required> <item></gold>，你目前只有 <gold><current></gold>（缺少 <missing>）。</red>"
+  not-enough-money: "<red>金幣不足！需要 <gold><required></gold>，你目前只有 <gold><current></gold>（缺少 <missing>）。</red>"
+  vault-disabled: "<red>伺服器未啟用 Vault 經濟系統，無法使用貨幣購買！</red>"
   inventory-full: "<yellow>你的背包已滿，溢出的頭顱已掉落在你的腳下！</yellow>"
   reload-success: "<green>PlayerHeadShop 設定檔與語言檔已成功重新加載！</green>"
   no-permission: "<red>你沒有權限使用此指令！</red>"
@@ -32,6 +35,14 @@ gui:
       - "<gray>(放置區支援放置多組物品，超過 64 個可分格放置)</gray>"
       - ""
       - "<yellow>放好後點擊此處即可完成購買！</yellow>"
+  vault-button:
+    lore:
+      - "<gray>購買印有自身皮膚外觀的頭顱。"
+      - ""
+      - "<white>獲得: <gold><head_amount> 你的個人頭顱</gold></white>"
+      - "<white>花費: <gold><cost_amount></gold></white>"
+      - ""
+      - "<green>▶ 點擊立即扣款購買！</green>"
   preview-head:
     name: "<gold><bold>獲得: <head_amount> 個人頭顱</bold></gold>"
     lore:

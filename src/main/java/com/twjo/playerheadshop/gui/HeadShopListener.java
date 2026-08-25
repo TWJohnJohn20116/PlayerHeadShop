@@ -14,7 +14,7 @@ import org.bukkit.inventory.ItemStack;
 import java.util.HashMap;
 
 /**
- * 監聽 GUI 點擊、拖曳與關閉事件，支援多格放置區的安全交互與防吞機制
+ * 監聽 GUI 點擊、拖曳與關閉事件，支援物品放置兌換與 Vault 貨幣直接扣款
  */
 public class HeadShopListener implements Listener {
 
@@ -42,7 +42,13 @@ public class HeadShopListener implements Listener {
                 int slot = event.getSlot();
                 ShopOption option = holder.getOption(slot);
                 if (option != null) {
-                    headShopGui.openDepositGui(player, option);
+                    if (option.isVault()) {
+                        // Vault 貨幣方案：直接執行扣款購買
+                        headShopService.processVaultPurchase(player, option);
+                    } else {
+                        // 實體物品方案：開啟放置兌換介面
+                        headShopGui.openDepositGui(player, option);
+                    }
                 }
             }
             return;
@@ -56,7 +62,7 @@ public class HeadShopListener implements Listener {
                 int slot = event.getSlot();
 
                 if (DepositGuiHolder.isInputSlot(slot)) {
-                    // 允許在放置區 (Slots 10, 11, 12, 19, 20, 21) 自由放置與拿取多組物品
+                    // 允許在放置區自由放置與拿取
                     return;
                 }
 

@@ -1,5 +1,6 @@
 package com.twjo.playerheadshop.service;
 
+import com.twjo.playerheadshop.PlayerHeadShop;
 import com.twjo.playerheadshop.config.ShopOption;
 import com.twjo.playerheadshop.database.DatabaseManager;
 import com.twjo.playerheadshop.gui.DepositGuiHolder;
@@ -16,16 +17,74 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
- * 處理玩家頭顱兌換、背包物品檢查與扣除、放置介面多格扣除、頭顱生成、掉落與交易記錄日誌。
+ * 處理玩家頭顱兌換、背包物品檢查與扣除、Vault 貨幣扣款、放置介面多格扣除、頭顱生成、掉落與交易記錄日誌。
  */
 public class HeadShopService {
 
+    private final PlayerHeadShop plugin;
     private final LanguageManager lang;
     private final DatabaseManager databaseManager;
 
-    public HeadShopService(LanguageManager lang, DatabaseManager databaseManager) {
+    public HeadShopService(PlayerHeadShop plugin, LanguageManager lang, DatabaseManager databaseManager) {
+        this.plugin = plugin;
         this.lang = lang;
         this.databaseManager = databaseManager;
+    }
+
+    /**
+     * 處理玩家在主選單點擊 Vault 貨幣方案的即時扣款購買
+     */
+    public boolean processVaultPurchase(Player player, ShopOption option) {
+        if (player == null || !player.isOnline() || option == null) {
+            return false;
+        }
+
+        if (!plugin.getVaultHook().hasEconomy()) {
+            lang.sendMessage(player, "vault-disabled");
+            try {
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+            } catch (Throwable ignored) {}
+            return false;
+        }
+
+        double costAmount = option.getCostAmount();
+        int headAmount = option.getHeadAmount();
+
+        // 1. 檢查玩家 Vault 貨幣餘額
+        if (!plugin.getVaultHook().has(player, costAmount)) {
+            double current = plugin.getVaultHook().getBalance(player);
+            double missing = costAmount - current;
+            lang.sendMessage(player, "not-enough-money",
+                    Placeholder.parsed("required", plugin.getVaultHook().format(costAmount)),
+                    Placeholder.parsed("current", plugin.getVaultHook().format(current)),
+                    Placeholder.parsed("missing", plugin.getVaultHook().format(missing))
+            );
+            try {
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
+            } catch (Throwable ignored) {}
+            return false;
+        }
+
+        // 2. 執行 Vault 扣款
+        if (!plugin.getVaultHook().withdraw(player, costAmount)) {
+            lang.sendMessage(player, "not-enough-money",
+                    Placeholder.parsed("required", plugin.getVaultHook().format(costAmount)),
+                    Placeholder.parsed("current", plugin.getVaultHook().format(plugin.getVaultHook().getBalance(player))),
+                    Placeholder.parsed("missing", plugin.getVaultHook().format(costAmount))
+            );
+            return false;
+        }
+
+        // 3. 生成頭顱並發放
+        giveHeads(player, headAmount, (int) Math.round(costAmount), "VAULT");
+
+        // 4. 發送 Vault 專屬成功提示
+        lang.sendMessage(player, "vault-success",
+                Placeholder.parsed("cost_amount", plugin.getVaultHook().format(costAmount)),
+                Placeholder.parsed("head_amount", lang.formatAmount(player, headAmount))
+        );
+
+        return true;
     }
 
     /**
@@ -36,8 +95,12 @@ public class HeadShopService {
             return false;
         }
 
+        if (option.isVault()) {
+            return processVaultPurchase(player, option);
+        }
+
         Material costItem = option.getCostItem();
-        int requiredAmount = option.getCostAmount();
+        int requiredAmount = option.getCostAmountInt();
         int headAmount = option.getHeadAmount();
 
         // 1. 檢查玩家背包中指定物品的持有總數
@@ -62,6 +125,16 @@ public class HeadShopService {
 
         // 3. 生成印有該玩家皮膚的頭顱物品堆疊清單並發放
         giveHeads(player, headAmount, requiredAmount, costItem.name());
+
+        // 發送物品購買成功提示
+        lang.sendMessage(player, "success",
+                Placeholder.parsed("cost_amount", lang.formatAmount(player, requiredAmount)),
+                Placeholder.parsed("cost_item", costItem.name()),
+                Placeholder.parsed("head_amount", lang.formatAmount(player, headAmount)),
+                Placeholder.parsed("amount", String.valueOf(requiredAmount)),
+                Placeholder.parsed("item", costItem.name())
+        );
+
         return true;
     }
 
@@ -79,7 +152,7 @@ public class HeadShopService {
         }
 
         Material costItem = option.getCostItem();
-        int requiredAmount = option.getCostAmount();
+        int requiredAmount = option.getCostAmountInt();
         int headAmount = option.getHeadAmount();
 
         // 1. 計算所有放置格 (Slots 10, 11, 12, 19, 20, 21) 內的目標物品總數
@@ -127,11 +200,21 @@ public class HeadShopService {
 
         // 3. 生成頭顱並發放
         giveHeads(player, headAmount, requiredAmount, costItem.name());
+
+        // 發送物品購買成功提示
+        lang.sendMessage(player, "success",
+                Placeholder.parsed("cost_amount", lang.formatAmount(player, requiredAmount)),
+                Placeholder.parsed("cost_item", costItem.name()),
+                Placeholder.parsed("head_amount", lang.formatAmount(player, headAmount)),
+                Placeholder.parsed("amount", String.valueOf(requiredAmount)),
+                Placeholder.parsed("item", costItem.name())
+        );
+
         return true;
     }
 
     /**
-     * 生成頭顱並發放給玩家（處理背包溢出、成功提示與非同步日誌記錄）
+     * 生成頭顱並發放給玩家（處理背包溢出與非同步日誌記錄）
      */
     private void giveHeads(Player player, int headAmount, int costAmount, String costItemName) {
         List<ItemStack> headsToGive = createPlayerHeads(player, headAmount);
@@ -150,15 +233,6 @@ public class HeadShopService {
         if (hasOverflow) {
             lang.sendMessage(player, "inventory-full");
         }
-
-        // 發送購買成功提示與音效
-        lang.sendMessage(player, "success",
-                Placeholder.parsed("cost_amount", lang.formatAmount(player, costAmount)),
-                Placeholder.parsed("cost_item", costItemName),
-                Placeholder.parsed("head_amount", lang.formatAmount(player, headAmount)),
-                Placeholder.parsed("amount", String.valueOf(costAmount)),
-                Placeholder.parsed("item", costItemName)
-        );
 
         try {
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.2f);

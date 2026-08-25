@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.logging.Level;
 
 /**
- * 管理 PlayerHeadShop 的主設定檔讀取與方案驗證
+ * 管理 PlayerHeadShop 的主設定檔讀取、Vault 類型解析與 GUI 智慧自動排版
  */
 public class PluginConfig {
 
@@ -29,7 +29,7 @@ public class PluginConfig {
     }
 
     /**
-     * 重新加載主設定檔
+     * 重新加載主設定檔與方案
      */
     public synchronized void reload() {
         plugin.reloadConfig();
@@ -48,41 +48,23 @@ public class PluginConfig {
         this.fillerMaterial = (matchedFiller != null && !matchedFiller.isAir()) ? matchedFiller : Material.GRAY_STAINED_GLASS_PANE;
         this.fillerDisplayName = config.getString("gui.filler.display-name", " ");
 
-        // 3. 讀取 options 兌換方案清單
-        Map<Integer, ShopOption> newOptions = new LinkedHashMap<>();
+        // 3. 讀取 options 兌換方案清單（支援手動 Slot 與未填寫時的智慧自動排版）
         int maxSlots = this.guiRows * 9;
+        List<ShopOption> manualOptions = new ArrayList<>();
+        List<ShopOption> autoOptions = new ArrayList<>();
 
         if (config.isList("options")) {
             List<Map<?, ?>> rawList = config.getMapList("options");
             for (Map<?, ?> entry : rawList) {
                 try {
-                    int slot = entry.containsKey("slot") ? ((Number) entry.get("slot")).intValue() : -1;
-                    if (slot < 0 || slot >= maxSlots) {
-                        plugin.getLogger().warning("方案 Slot 設定超出邊界 (0 ~ " + (maxSlots - 1) + "): " + slot + "，已忽略此方案。");
-                        continue;
-                    }
-
-                    String displayName = entry.containsKey("display-name") ? String.valueOf(entry.get("display-name")) : null;
-                    List<String> lore = null;
-                    if (entry.containsKey("lore") && entry.get("lore") instanceof List<?> loreList) {
-                        lore = new ArrayList<>();
-                        for (Object line : loreList) {
-                            lore.add(String.valueOf(line));
+                    ShopOption option = parseOptionFromMap(entry, maxSlots);
+                    if (option != null) {
+                        if (option.isAutoSlot()) {
+                            autoOptions.add(option);
+                        } else {
+                            manualOptions.add(option);
                         }
                     }
-
-                    String costItemStr = entry.containsKey("cost-item") ? String.valueOf(entry.get("cost-item")) : "DIAMOND";
-                    Material costItem = Material.matchMaterial(costItemStr);
-                    if (costItem == null || costItem.isAir()) {
-                        plugin.getLogger().warning("方案 Slot " + slot + " 消耗物品無效: " + costItemStr + "，已自動回退為 DIAMOND。");
-                        costItem = Material.DIAMOND;
-                    }
-
-                    int costAmount = entry.containsKey("cost-amount") ? ((Number) entry.get("cost-amount")).intValue() : 1;
-                    int headAmount = entry.containsKey("head-amount") ? ((Number) entry.get("head-amount")).intValue() : 1;
-
-                    ShopOption option = new ShopOption(slot, displayName, lore, costItem, costAmount, headAmount);
-                    newOptions.put(slot, option);
                 } catch (Exception e) {
                     plugin.getLogger().log(Level.WARNING, "解析兌換方案時發生錯誤: " + entry, e);
                 }
@@ -91,33 +73,202 @@ public class PluginConfig {
             ConfigurationSection section = config.getConfigurationSection("options");
             if (section != null) {
                 for (String key : section.getKeys(false)) {
-                    int slot = section.getInt(key + ".slot", -1);
-                    if (slot < 0 || slot >= maxSlots) continue;
-
-                    String displayName = section.getString(key + ".display-name", null);
-                    List<String> lore = section.contains(key + ".lore") ? section.getStringList(key + ".lore") : null;
-                    String costItemStr = section.getString(key + ".cost-item", "DIAMOND");
-                    Material costItem = Material.matchMaterial(costItemStr);
-                    if (costItem == null || costItem.isAir()) {
-                        costItem = Material.DIAMOND;
+                    try {
+                        ShopOption option = parseOptionFromSection(section.getConfigurationSection(key), maxSlots);
+                        if (option != null) {
+                            if (option.isAutoSlot()) {
+                                autoOptions.add(option);
+                            } else {
+                                manualOptions.add(option);
+                            }
+                        }
+                    } catch (Exception e) {
+                        plugin.getLogger().log(Level.WARNING, "解析兌換方案時發生錯誤: " + key, e);
                     }
-                    int costAmount = section.getInt(key + ".cost-amount", 1);
-                    int headAmount = section.getInt(key + ".head-amount", 1);
-
-                    ShopOption option = new ShopOption(slot, displayName, lore, costItem, costAmount, headAmount);
-                    newOptions.put(slot, option);
                 }
             }
         }
 
+        // 4. 計算自動排版位置
+        Map<Integer, ShopOption> finalOptions = calculateLayout(manualOptions, autoOptions, maxSlots);
+
         // 若無任何方案，建立預設方案
-        if (newOptions.isEmpty()) {
-            newOptions.put(11, new ShopOption(11, null, null, Material.DIAMOND, 1, 1));
-            newOptions.put(13, new ShopOption(13, null, null, Material.DIAMOND, 7, 8));
-            newOptions.put(15, new ShopOption(15, null, null, Material.DIAMOND, 50, 64));
+        if (finalOptions.isEmpty()) {
+            finalOptions.put(11, new ShopOption(11, ShopOption.CostType.ITEM, null, null, Material.DIAMOND, 1, 1));
+            finalOptions.put(13, new ShopOption(13, ShopOption.CostType.ITEM, null, null, Material.DIAMOND, 7, 8));
+            finalOptions.put(15, new ShopOption(15, ShopOption.CostType.ITEM, null, null, Material.DIAMOND, 50, 64));
         }
 
-        this.options = Collections.unmodifiableMap(newOptions);
+        this.options = Collections.unmodifiableMap(finalOptions);
+    }
+
+    /**
+     * 從 Map 解析單一方案
+     */
+    private ShopOption parseOptionFromMap(Map<?, ?> entry, int maxSlots) {
+        int slot = entry.containsKey("slot") ? ((Number) entry.get("slot")).intValue() : -1;
+        if (slot >= maxSlots) {
+            plugin.getLogger().warning("方案 Slot 設定超出邊界 (0 ~ " + (maxSlots - 1) + "): " + slot + "，已轉為自動排版。");
+            slot = -1;
+        }
+
+        // 判斷支付類型 (ITEM 或 VAULT)
+        ShopOption.CostType costType = ShopOption.CostType.ITEM;
+        if (entry.containsKey("cost-type")) {
+            String typeStr = String.valueOf(entry.get("cost-type")).toUpperCase();
+            if (typeStr.equals("VAULT") || typeStr.equals("MONEY") || typeStr.equals("ECONOMY")) {
+                costType = ShopOption.CostType.VAULT;
+            }
+        }
+
+        String costItemStr = entry.containsKey("cost-item") ? String.valueOf(entry.get("cost-item")) : "DIAMOND";
+        if (costItemStr.equalsIgnoreCase("VAULT") || costItemStr.equalsIgnoreCase("MONEY") || costItemStr.equalsIgnoreCase("ECONOMY")) {
+            costType = ShopOption.CostType.VAULT;
+        }
+
+        Material costItem = Material.matchMaterial(costItemStr);
+        if (costType == ShopOption.CostType.ITEM && (costItem == null || costItem.isAir())) {
+            plugin.getLogger().warning("方案消耗物品無效: " + costItemStr + "，已自動回退為 DIAMOND。");
+            costItem = Material.DIAMOND;
+        }
+
+        double costAmount = entry.containsKey("cost-amount") ? ((Number) entry.get("cost-amount")).doubleValue() : 1.0;
+        int headAmount = entry.containsKey("head-amount") ? ((Number) entry.get("head-amount")).intValue() : 1;
+
+        String displayName = entry.containsKey("display-name") ? String.valueOf(entry.get("display-name")) : null;
+        List<String> lore = null;
+        if (entry.containsKey("lore") && entry.get("lore") instanceof List<?> loreList) {
+            lore = new ArrayList<>();
+            for (Object line : loreList) {
+                lore.add(String.valueOf(line));
+            }
+        }
+
+        return new ShopOption(slot, costType, displayName, lore, costItem, costAmount, headAmount);
+    }
+
+    /**
+     * 從 ConfigurationSection 解析單一方案
+     */
+    private ShopOption parseOptionFromSection(ConfigurationSection sec, int maxSlots) {
+        if (sec == null) return null;
+        int slot = sec.contains("slot") ? sec.getInt("slot") : -1;
+        if (slot >= maxSlots) {
+            slot = -1;
+        }
+
+        ShopOption.CostType costType = ShopOption.CostType.ITEM;
+        String typeStr = sec.getString("cost-type", "ITEM").toUpperCase();
+        if (typeStr.equals("VAULT") || typeStr.equals("MONEY") || typeStr.equals("ECONOMY")) {
+            costType = ShopOption.CostType.VAULT;
+        }
+
+        String costItemStr = sec.getString("cost-item", "DIAMOND");
+        if (costItemStr.equalsIgnoreCase("VAULT") || costItemStr.equalsIgnoreCase("MONEY") || costItemStr.equalsIgnoreCase("ECONOMY")) {
+            costType = ShopOption.CostType.VAULT;
+        }
+
+        Material costItem = Material.matchMaterial(costItemStr);
+        if (costType == ShopOption.CostType.ITEM && (costItem == null || costItem.isAir())) {
+            costItem = Material.DIAMOND;
+        }
+
+        double costAmount = sec.getDouble("cost-amount", 1.0);
+        int headAmount = sec.getInt("head-amount", 1);
+        String displayName = sec.getString("display-name", null);
+        List<String> lore = sec.contains("lore") ? sec.getStringList("lore") : null;
+
+        return new ShopOption(slot, costType, displayName, lore, costItem, costAmount, headAmount);
+    }
+
+    /**
+     * 智慧排版計算：結合手動指定 Slot 與未填寫 Slot 的最佳美觀佈局
+     */
+    private Map<Integer, ShopOption> calculateLayout(List<ShopOption> manualOptions, List<ShopOption> autoOptions, int maxSlots) {
+        Map<Integer, ShopOption> resultMap = new LinkedHashMap<>();
+        Set<Integer> occupiedSlots = new HashSet<>();
+
+        // 1. 先置入手動指定的方案
+        for (ShopOption opt : manualOptions) {
+            if (opt.getSlot() >= 0 && opt.getSlot() < maxSlots) {
+                resultMap.put(opt.getSlot(), opt);
+                occupiedSlots.add(opt.getSlot());
+            }
+        }
+
+        if (autoOptions.isEmpty()) {
+            return resultMap;
+        }
+
+        // 2. 針對自動排版方案，計算最佳放置位置
+        List<Integer> preferredSlots = getPreferredSlots(autoOptions.size(), this.guiRows);
+        int autoIdx = 0;
+
+        // 優先嘗試對稱推薦位置
+        for (int candidate : preferredSlots) {
+            if (autoIdx >= autoOptions.size()) break;
+            if (!occupiedSlots.contains(candidate) && candidate >= 0 && candidate < maxSlots) {
+                ShopOption opt = autoOptions.get(autoIdx++);
+                resultMap.put(candidate, opt.withSlot(candidate));
+                occupiedSlots.add(candidate);
+            }
+        }
+
+        // 若還有剩餘未放下的方案，依序填補非邊框空位
+        if (autoIdx < autoOptions.size()) {
+            for (int r = 1; r < this.guiRows - 1; r++) {
+                for (int c = 1; c < 8; c++) {
+                    int s = r * 9 + c;
+                    if (autoIdx >= autoOptions.size()) break;
+                    if (!occupiedSlots.contains(s) && s < maxSlots) {
+                        ShopOption opt = autoOptions.get(autoIdx++);
+                        resultMap.put(s, opt.withSlot(s));
+                        occupiedSlots.add(s);
+                    }
+                }
+            }
+        }
+
+        // 最後若依然放不下，填入任意剩餘空格
+        if (autoIdx < autoOptions.size()) {
+            for (int s = 0; s < maxSlots; s++) {
+                if (autoIdx >= autoOptions.size()) break;
+                if (!occupiedSlots.contains(s)) {
+                    ShopOption opt = autoOptions.get(autoIdx++);
+                    resultMap.put(s, opt.withSlot(s));
+                    occupiedSlots.add(s);
+                }
+            }
+        }
+
+        return resultMap;
+    }
+
+    /**
+     * 根據數量與行數生成最美觀的置中/對稱候選 Slot 清單
+     */
+    private List<Integer> getPreferredSlots(int count, int rows) {
+        int midRow = rows / 2;
+        int rowStart = midRow * 9;
+
+        return switch (count) {
+            case 1 -> List.of(rowStart + 4);
+            case 2 -> List.of(rowStart + 2, rowStart + 6);
+            case 3 -> List.of(rowStart + 2, rowStart + 4, rowStart + 6);
+            case 4 -> List.of(rowStart + 1, rowStart + 3, rowStart + 5, rowStart + 7);
+            case 5 -> List.of(rowStart + 2, rowStart + 3, rowStart + 4, rowStart + 5, rowStart + 6);
+            case 6 -> List.of(rowStart + 1, rowStart + 2, rowStart + 3, rowStart + 5, rowStart + 6, rowStart + 7);
+            case 7 -> List.of(rowStart + 1, rowStart + 2, rowStart + 3, rowStart + 4, rowStart + 5, rowStart + 6, rowStart + 7);
+            default -> {
+                List<Integer> list = new ArrayList<>();
+                for (int r = 1; r < rows - 1; r++) {
+                    for (int c = 1; c < 8; c++) {
+                        list.add(r * 9 + c);
+                    }
+                }
+                yield list;
+            }
+        };
     }
 
     public String getLanguage() {

@@ -1,5 +1,6 @@
 package com.twjo.playerheadshop.gui;
 
+import com.twjo.playerheadshop.PlayerHeadShop;
 import com.twjo.playerheadshop.config.PluginConfig;
 import com.twjo.playerheadshop.config.ShopOption;
 import com.twjo.playerheadshop.lang.LanguageManager;
@@ -20,15 +21,17 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 負責構建與開啟 PlayerHeadShop 的箱子 GUI 介面（完整支援多語言 i18n 系統）
+ * 負責構建與開啟 PlayerHeadShop 的箱子 GUI 介面（支援多語言、Vault 貨幣與自動排版）
  */
 public class HeadShopGui {
 
+    private final PlayerHeadShop plugin;
     private final PluginConfig config;
     private final LanguageManager lang;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
-    public HeadShopGui(PluginConfig config, LanguageManager lang) {
+    public HeadShopGui(PlayerHeadShop plugin, PluginConfig config, LanguageManager lang) {
+        this.plugin = plugin;
         this.config = config;
         this.lang = lang;
     }
@@ -148,13 +151,20 @@ public class HeadShopGui {
                 skullMeta.setOwningPlayer(player);
             }
 
+            String formattedCost = option.isVault()
+                    ? plugin.getVaultHook().format(option.getCostAmount())
+                    : lang.formatAmount(player, option.getCostAmountInt());
+            String costItemName = option.isVault()
+                    ? plugin.getVaultHook().getCurrencyName()
+                    : option.getCostItem().name();
+
             TagResolver[] resolvers = new TagResolver[]{
                     Placeholder.parsed("player", player.getName()),
                     Placeholder.parsed("head_amount", lang.formatAmount(player, option.getHeadAmount())),
-                    Placeholder.parsed("cost_amount", lang.formatAmount(player, option.getCostAmount())),
-                    Placeholder.parsed("cost_item", option.getCostItem().name()),
-                    Placeholder.parsed("amount", String.valueOf(option.getCostAmount())),
-                    Placeholder.parsed("item", option.getCostItem().name())
+                    Placeholder.parsed("cost_amount", formattedCost),
+                    Placeholder.parsed("cost_item", costItemName),
+                    Placeholder.parsed("amount", formattedCost),
+                    Placeholder.parsed("item", costItemName)
             };
 
             // 若自訂了名稱則優先使用自訂名稱，否則使用語言檔
@@ -174,7 +184,8 @@ public class HeadShopGui {
                 }
                 skullMeta.lore(loreComponents);
             } else {
-                List<String> rawLore = lang.getRawList(player, "gui.confirm-button.lore");
+                String loreKey = option.isVault() ? "gui.vault-button.lore" : "gui.confirm-button.lore";
+                List<String> rawLore = lang.getRawList(player, loreKey);
                 List<Component> loreComponents = new ArrayList<>();
                 for (String line : rawLore) {
                     loreComponents.add(miniMessage.deserialize(line, resolvers));
@@ -195,13 +206,16 @@ public class HeadShopGui {
         ItemStack item = new ItemStack(Material.EMERALD, 1);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
+            String formattedCost = lang.formatAmount(player, option.getCostAmountInt());
+            String costItemName = option.getCostItem().name();
+
             TagResolver[] resolvers = new TagResolver[]{
                     Placeholder.parsed("player", player.getName()),
                     Placeholder.parsed("head_amount", lang.formatAmount(player, option.getHeadAmount())),
-                    Placeholder.parsed("cost_amount", lang.formatAmount(player, option.getCostAmount())),
-                    Placeholder.parsed("cost_item", option.getCostItem().name()),
-                    Placeholder.parsed("amount", String.valueOf(option.getCostAmount())),
-                    Placeholder.parsed("item", option.getCostItem().name())
+                    Placeholder.parsed("cost_amount", formattedCost),
+                    Placeholder.parsed("cost_item", costItemName),
+                    Placeholder.parsed("amount", String.valueOf(option.getCostAmountInt())),
+                    Placeholder.parsed("item", costItemName)
             };
 
             meta.displayName(lang.getComponent(player, "gui.confirm-button.name", resolvers));
@@ -230,13 +244,16 @@ public class HeadShopGui {
                 skullMeta.setOwningPlayer(player);
             }
 
+            String formattedCost = lang.formatAmount(player, option.getCostAmountInt());
+            String costItemName = option.getCostItem().name();
+
             TagResolver[] resolvers = new TagResolver[]{
                     Placeholder.parsed("player", player.getName()),
                     Placeholder.parsed("head_amount", lang.formatAmount(player, option.getHeadAmount())),
-                    Placeholder.parsed("cost_amount", lang.formatAmount(player, option.getCostAmount())),
-                    Placeholder.parsed("cost_item", option.getCostItem().name()),
-                    Placeholder.parsed("amount", String.valueOf(option.getCostAmount())),
-                    Placeholder.parsed("item", option.getCostItem().name())
+                    Placeholder.parsed("cost_amount", formattedCost),
+                    Placeholder.parsed("cost_item", costItemName),
+                    Placeholder.parsed("amount", String.valueOf(option.getCostAmountInt())),
+                    Placeholder.parsed("item", costItemName)
             };
 
             skullMeta.displayName(lang.getComponent(player, "gui.preview-head.name", resolvers));
