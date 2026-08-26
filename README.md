@@ -2,7 +2,7 @@
 
 ![PlayerHeadShop Plugin Icon](file:///C:/Users/TW_Jo/.gemini/antigravity/brain/fde998ad-86f5-40ab-9c17-c0e7057b9660/icon.png)
 
-![Version](https://img.shields.io/badge/Version-2.0.0-gold.svg)
+![Version](https://img.shields.io/badge/Version-2.0.1-gold.svg)
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.21%2B-brightgreen.svg)
 ![Server](https://img.shields.io/badge/Platform-Paper%20%7C%20Purpur%20%7C%20Folia-blue.svg)
 ![Java](https://img.shields.io/badge/Java-21%2B-orange.svg)
@@ -62,4 +62,4 @@ mvn clean package
 # 使用 Gradle 建置
 ./gradlew build
 ```
-產生的 JAR 檔案位於 `target/PlayerHeadShop-2.0.0.jar` 或 `build/libs/`。
+產生的 JAR 檔案位於 `target/PlayerHeadShop-2.0.1.jar` 或 `build/libs/`。
