@@ -1,6 +1,8 @@
 package com.twjo.playerheadshop.database;
 
 import com.twjo.playerheadshop.PlayerHeadShop;
+import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
 import java.sql.*;
@@ -14,7 +16,7 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
 /**
- * 管理 SQLite 資料庫連線、記錄儲存與非同步歷史查詢
+ * 管理 SQLite 資料庫連線、交易記錄、收益金庫持久化與管理員提領稽核日誌
  */
 public class DatabaseManager {
 
@@ -48,7 +50,7 @@ public class DatabaseManager {
                 this.connection = DriverManager.getConnection(url);
 
                 try (Statement stmt = connection.createStatement()) {
-                    // 建立交易記錄表
+                    // 1. 交易記錄表
                     stmt.executeUpdate("""
                         CREATE TABLE IF NOT EXISTS trade_history (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,10 +62,42 @@ public class DatabaseManager {
                             head_amount INTEGER NOT NULL
                         );
                     """);
-
-                    // 建立索引提升查詢效率
                     stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_player ON trade_history(player_name);");
                     stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_time ON trade_history(timestamp DESC);");
+
+                    // 2. 金庫資產表 (金幣與經驗)
+                    stmt.executeUpdate("""
+                        CREATE TABLE IF NOT EXISTS treasury_balance (
+                            id INTEGER PRIMARY KEY,
+                            vault_balance REAL NOT NULL DEFAULT 0.0,
+                            exp_points INTEGER NOT NULL DEFAULT 0
+                        );
+                    """);
+                    stmt.executeUpdate("INSERT OR IGNORE INTO treasury_balance (id, vault_balance, exp_points) VALUES (1, 0.0, 0);");
+
+                    // 3. 金庫物品表 (實體物品槽)
+                    stmt.executeUpdate("""
+                        CREATE TABLE IF NOT EXISTS treasury_items (
+                            slot INTEGER PRIMARY KEY,
+                            material TEXT NOT NULL,
+                            amount INTEGER NOT NULL,
+                            item_bytes BLOB
+                        );
+                    """);
+
+                    // 4. 管理員提領稽核表記錄表
+                    stmt.executeUpdate("""
+                        CREATE TABLE IF NOT EXISTS treasury_logs (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            timestamp INTEGER NOT NULL,
+                            admin_uuid TEXT NOT NULL,
+                            admin_name TEXT NOT NULL,
+                            action_type TEXT NOT NULL,
+                            detail TEXT NOT NULL,
+                            amount REAL NOT NULL
+                        );
+                    """);
+                    stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_treasury_time ON treasury_logs(timestamp DESC);");
                 }
             } catch (SQLException e) {
                 plugin.getLogger().log(Level.SEVERE, "無法初始化 SQLite 資料庫", e);
@@ -71,16 +105,14 @@ public class DatabaseManager {
         });
     }
 
-    /**
-     * 非同步記錄一筆兌換交易
-     */
+    // ==========================================
+    // 交易歷史記錄 (Trade History)
+    // ==========================================
+
     public CompletableFuture<Void> logTrade(UUID playerUuid, String playerName, String costItem, int costAmount, int headAmount) {
         return CompletableFuture.runAsync(() -> {
             try {
-                if (connection == null || connection.isClosed()) {
-                    return;
-                }
-
+                if (connection == null || connection.isClosed()) return;
                 String sql = "INSERT INTO trade_history (timestamp, player_uuid, player_name, cost_item, cost_amount, head_amount) VALUES (?, ?, ?, ?, ?, ?)";
                 try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
                     pstmt.setLong(1, System.currentTimeMillis());
@@ -97,28 +129,19 @@ public class DatabaseManager {
         }, executor);
     }
 
-    /**
-     * 非同步獲取記錄總數（可選指定玩家）
-     */
     public CompletableFuture<Integer> getTotalRecords(String playerFilter) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                if (connection == null || connection.isClosed()) {
-                    return 0;
-                }
-
+                if (connection == null || connection.isClosed()) return 0;
                 String sql = (playerFilter != null && !playerFilter.isEmpty())
                         ? "SELECT COUNT(*) FROM trade_history WHERE LOWER(player_name) = LOWER(?)"
                         : "SELECT COUNT(*) FROM trade_history";
-
                 try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
                     if (playerFilter != null && !playerFilter.isEmpty()) {
                         pstmt.setString(1, playerFilter);
                     }
                     try (ResultSet rs = pstmt.executeQuery()) {
-                        if (rs.next()) {
-                            return rs.getInt(1);
-                        }
+                        if (rs.next()) return rs.getInt(1);
                     }
                 }
             } catch (SQLException e) {
@@ -128,17 +151,11 @@ public class DatabaseManager {
         }, executor);
     }
 
-    /**
-     * 非同步分頁查詢記錄清單
-     */
     public CompletableFuture<List<TradeRecord>> getRecords(String playerFilter, int page, int pageSize) {
         return CompletableFuture.supplyAsync(() -> {
             List<TradeRecord> list = new ArrayList<>();
             try {
-                if (connection == null || connection.isClosed()) {
-                    return list;
-                }
-
+                if (connection == null || connection.isClosed()) return list;
                 int offset = Math.max(0, (page - 1) * pageSize);
                 String sql = (playerFilter != null && !playerFilter.isEmpty())
                         ? "SELECT id, timestamp, player_uuid, player_name, cost_item, cost_amount, head_amount FROM trade_history WHERE LOWER(player_name) = LOWER(?) ORDER BY timestamp DESC LIMIT ? OFFSET ?"
@@ -161,13 +178,193 @@ public class DatabaseManager {
                             String costItem = rs.getString("cost_item");
                             int costAmount = rs.getInt("cost_amount");
                             int headAmount = rs.getInt("head_amount");
-
                             list.add(new TradeRecord(id, timestamp, uuid, name, costItem, costAmount, headAmount));
                         }
                     }
                 }
             } catch (SQLException e) {
                 plugin.getLogger().log(Level.WARNING, "分頁查詢記錄失敗", e);
+            }
+            return list;
+        }, executor);
+    }
+
+    // ==========================================
+    // 收益金庫持久化 (Treasury Balance & Items)
+    // ==========================================
+
+    public CompletableFuture<double[]> loadTreasuryBalance() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                if (connection == null || connection.isClosed()) return new double[]{0.0, 0.0};
+                String sql = "SELECT vault_balance, exp_points FROM treasury_balance WHERE id = 1";
+                try (Statement stmt = connection.createStatement();
+                     ResultSet rs = stmt.executeQuery(sql)) {
+                    if (rs.next()) {
+                        return new double[]{rs.getDouble("vault_balance"), (double) rs.getInt("exp_points")};
+                    }
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "讀取金庫餘額失敗", e);
+            }
+            return new double[]{0.0, 0.0};
+        }, executor);
+    }
+
+    public CompletableFuture<Void> saveTreasuryBalance(double vaultBalance, int expPoints) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                if (connection == null || connection.isClosed()) return;
+                String sql = "UPDATE treasury_balance SET vault_balance = ?, exp_points = ? WHERE id = 1";
+                try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                    pstmt.setDouble(1, vaultBalance);
+                    pstmt.setInt(2, expPoints);
+                    pstmt.executeUpdate();
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "保存金庫餘額失敗", e);
+            }
+        }, executor);
+    }
+
+    public CompletableFuture<List<ItemStack>> loadTreasuryItems(int maxSlots) {
+        return CompletableFuture.supplyAsync(() -> {
+            List<ItemStack> items = new ArrayList<>(Collections.nCopies(maxSlots, null));
+            try {
+                if (connection == null || connection.isClosed()) return items;
+                String sql = "SELECT slot, material, amount, item_bytes FROM treasury_items";
+                try (Statement stmt = connection.createStatement();
+                     ResultSet rs = stmt.executeQuery(sql)) {
+                    while (rs.next()) {
+                        int slot = rs.getInt("slot");
+                        if (slot >= 0 && slot < maxSlots) {
+                            byte[] bytes = rs.getBytes("item_bytes");
+                            if (bytes != null && bytes.length > 0) {
+                                try {
+                                    items.set(slot, ItemStack.deserializeBytes(bytes));
+                                    continue;
+                                } catch (Throwable ignored) {}
+                            }
+                            String matStr = rs.getString("material");
+                            int amount = rs.getInt("amount");
+                            Material mat = Material.matchMaterial(matStr);
+                            if (mat != null && !mat.isAir() && amount > 0) {
+                                items.set(slot, new ItemStack(mat, amount));
+                            }
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "讀取金庫物品失敗", e);
+            }
+            return items;
+        }, executor);
+    }
+
+    public CompletableFuture<Void> saveTreasuryItems(List<ItemStack> items) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                if (connection == null || connection.isClosed()) return;
+                try (Statement stmt = connection.createStatement()) {
+                    stmt.executeUpdate("DELETE FROM treasury_items");
+                }
+
+                String sql = "INSERT INTO treasury_items (slot, material, amount, item_bytes) VALUES (?, ?, ?, ?)";
+                try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                    for (int i = 0; i < items.size(); i++) {
+                        ItemStack item = items.get(i);
+                        if (item != null && !item.getType().isAir() && item.getAmount() > 0) {
+                            pstmt.setInt(1, i);
+                            pstmt.setString(2, item.getType().name());
+                            pstmt.setInt(3, item.getAmount());
+                            try {
+                                pstmt.setBytes(4, item.serializeAsBytes());
+                            } catch (Throwable ignored) {
+                                pstmt.setBytes(4, null);
+                            }
+                            pstmt.addBatch();
+                        }
+                    }
+                    pstmt.executeBatch();
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "保存金庫物品失敗", e);
+            }
+        }, executor);
+    }
+
+    // ==========================================
+    // 管理員提領稽核日誌 (Treasury Audit Logs)
+    // ==========================================
+
+    public CompletableFuture<Void> logTreasuryWithdrawal(UUID adminUuid, String adminName, String actionType, String detail, double amount) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                if (connection == null || connection.isClosed()) return;
+                String sql = "INSERT INTO treasury_logs (timestamp, admin_uuid, admin_name, action_type, detail, amount) VALUES (?, ?, ?, ?, ?, ?)";
+                try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                    pstmt.setLong(1, System.currentTimeMillis());
+                    pstmt.setString(2, adminUuid != null ? adminUuid.toString() : "CONSOLE");
+                    pstmt.setString(3, adminName != null ? adminName : "Console");
+                    pstmt.setString(4, actionType);
+                    pstmt.setString(5, detail);
+                    pstmt.setDouble(6, amount);
+                    pstmt.executeUpdate();
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "記錄管理員金庫提領日誌失敗: " + adminName, e);
+            }
+        }, executor);
+    }
+
+    public CompletableFuture<Integer> getTotalTreasuryLogs() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                if (connection == null || connection.isClosed()) return 0;
+                String sql = "SELECT COUNT(*) FROM treasury_logs";
+                try (Statement stmt = connection.createStatement();
+                     ResultSet rs = stmt.executeQuery(sql)) {
+                    if (rs.next()) return rs.getInt(1);
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "查詢金庫稽核日誌總數失敗", e);
+            }
+            return 0;
+        }, executor);
+    }
+
+    public CompletableFuture<List<TreasuryLogRecord>> getTreasuryLogs(int page, int pageSize) {
+        return CompletableFuture.supplyAsync(() -> {
+            List<TreasuryLogRecord> list = new ArrayList<>();
+            try {
+                if (connection == null || connection.isClosed()) return list;
+                int offset = Math.max(0, (page - 1) * pageSize);
+                String sql = "SELECT id, timestamp, admin_uuid, admin_name, action_type, detail, amount FROM treasury_logs ORDER BY timestamp DESC LIMIT ? OFFSET ?";
+
+                try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                    pstmt.setInt(1, pageSize);
+                    pstmt.setInt(2, offset);
+
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        while (rs.next()) {
+                            long id = rs.getLong("id");
+                            long timestamp = rs.getLong("timestamp");
+                            String uuidStr = rs.getString("admin_uuid");
+                            UUID uuid = null;
+                            try {
+                                uuid = UUID.fromString(uuidStr);
+                            } catch (Exception ignored) {}
+                            String name = rs.getString("admin_name");
+                            String action = rs.getString("action_type");
+                            String detail = rs.getString("detail");
+                            double amount = rs.getDouble("amount");
+
+                            list.add(new TreasuryLogRecord(id, timestamp, uuid, name, action, detail, amount));
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "分頁查詢金庫稽核日誌失敗", e);
             }
             return list;
         }, executor);

@@ -4,80 +4,120 @@
 
 messages:
   prefix: "<gray>[<gold>HeadShop</gold>]</gray> "
-  success: "<green>You spent <gold><cost_amount> <cost_item></gold> and received <gold><head_amount> of your own heads!</green>"
-  vault-success: "<green>You spent <gold><cost_amount></gold> and received <gold><head_amount> of your own heads!</green>"
-  exp-level-success: "<green>You spent <gold><cost_amount></gold> and received <gold><head_amount> of your own heads!</green>"
-  exp-points-success: "<green>You spent <gold><cost_amount></gold> and received <gold><head_amount> of your own heads!</green>"
-  not-enough-items: "<red>Not enough items! Required <gold><required> <item></gold>, you only have <gold><current></gold> (Missing <missing>).</red>"
-  not-enough-money: "<red>Not enough money! Required <gold><required></gold>, you only have <gold><current></gold> (Missing <missing>).</red>"
-  not-enough-exp-level: "<red>Not enough experience levels! Required <gold><required></gold>, you currently have <gold><current></gold> (Missing <missing>).</red>"
-  not-enough-exp-points: "<red>Not enough experience points! Required <gold><required></gold>, you currently have <gold><current></gold> (Missing <missing>).</red>"
-  vault-disabled: "<red>Vault economy system is not enabled on this server!</red>"
-  inventory-full: "<yellow>Your inventory was full! Overflow heads have dropped at your feet.</yellow>"
+  success: "<green>You spent <gold><cost_amount> <cost_item></gold> and purchased <gold><head_amount> of your own head!</green>"
+  vault-success: "<green>You spent <gold><cost_amount></gold> and purchased <gold><head_amount> of your own head!</green>"
+  exp-level-success: "<green>You spent <gold><cost_amount></gold> and purchased <gold><head_amount> of your own head!</green>"
+  exp-points-success: "<green>You spent <gold><cost_amount></gold> and purchased <gold><head_amount> of your own head!</green>"
+  not-enough-items: "<red>Not enough items! Required: <gold><required> <item></gold>, you have: <gold><current></gold> (Missing <missing>).</red>"
+  not-enough-money: "<red>Not enough money! Required: <gold><required></gold>, you have: <gold><current></gold> (Missing <missing>).</red>"
+  not-enough-exp-level: "<red>Not enough experience levels! Required: <gold><required></gold>, you have: <gold><current></gold> (Missing <missing>).</red>"
+  not-enough-exp-points: "<red>Not enough experience points! Required: <gold><required></gold>, you have: <gold><current></gold> (Missing <missing>).</red>"
+  vault-disabled: "<red>Vault economy is not enabled on this server!</red>"
+  inventory-full: "<yellow>Your inventory was full! Overflowing heads dropped at your feet.</yellow>"
   reload-success: "<green>PlayerHeadShop configuration and language files reloaded successfully!</green>"
   no-permission: "<red>You do not have permission to use this command!</red>"
-  player-only: "<red>This command can only be used by in-game players.</red>"
+  player-only: "<red>This command can only be executed by players in-game.</red>"
 
   # Trade History
-  history-header: "<gold><bold>=== Head Trade History (Page <page>/<max_page>, Total <total>) ===</bold></gold>"
+  history-header: "<gold><bold>=== Trade History (Page <page>/<max_page>, Total <total>) ===</bold></gold>"
   history-player-header: "<gold><bold>=== Trade History for <player> (Page <page>/<max_page>, Total <total>) ===</bold></gold>"
-  history-entry: "<gray>[<time>]</gray> <yellow><player></yellow> spent <aqua><cost_amount> <cost_item></aqua> for <gold><head_amount> Head(s)</gold>"
-  history-footer: "<gray>Tip: Type <yellow>/buyhead history [player] [page]</yellow> for more</gray>"
+  history-entry: "<gray>[<time>]</gray> <yellow><player></yellow> spent <aqua><cost_amount> <cost_item></aqua> for <gold><head_amount> heads</gold>"
+  history-footer: "<gray>Tip: Use <yellow>/buyhead history [player] [page]</yellow> for more records</gray>"
   history-empty: "<red>No trade records found!</red>"
-  history-invalid-page: "<red>Invalid page number! Valid range is 1 ~ <max_page>.</red>"
+  history-invalid-page: "<red>Invalid page number! Valid range is 1 to <max_page>.</red>"
+
+  # Treasury Pool & Audit Logs
+  treasury-disabled: "<red>Treasury revenue pool is disabled (pool.enabled: false).</red>"
+  treasury-empty-vault: "<red>There is currently no Vault money in the treasury!</red>"
+  treasury-empty-exp: "<red>There is currently no experience points in the treasury!</red>"
+  treasury-withdraw-vault-success: "<green>Successfully withdrew <gold><amount></gold> from treasury!</green>"
+  treasury-withdraw-exp-success: "<green>Successfully withdrew <gold><amount></gold> from treasury!</green>"
+  treasury-info-header: "<gold><bold>=== PlayerHeadShop Treasury Assets ===</bold></gold>"
+  treasury-info-vault: "<white>Vault Balance: <gold><amount></gold></white>"
+  treasury-info-exp: "<white>Exp Points: <green><amount></green></white>"
+  treasury-info-items: "<white>Physical Stacks: <aqua><amount> item stacks</aqua></white>"
+  treasury-logs-header: "<gold><bold>=== Treasury Admin Withdrawal Audit Logs (Page <page>/<max_page>, Total <total>) ===</bold></gold>"
+  treasury-logs-entry: "<gray>[<time>]</gray> Admin <yellow><admin></yellow> withdrew <aqua><detail></aqua>"
+  treasury-logs-empty: "<red>No treasury withdrawal audit records found!</red>"
+  treasury-logs-invalid-page: "<red>Invalid page number! Valid range is 1 to <max_page>.</red>"
 
 gui:
   main-title: "<gradient:#FFAA00:#FF5555><bold>Player Head Shop</bold></gradient>"
-  deposit-title: "<gradient:#FFAA00:#FF5555><bold>Deposit & Trade</bold></gradient> <gray>-</gray> <yellow><head_amount></yellow>"
+  deposit-title: "<gradient:#FFAA00:#FF5555><bold>Deposit Items</bold></gradient> <gray>-</gray> <yellow><head_amount></yellow>"
   confirm-button:
-    name: "<green><bold>▶ Click to Confirm Exchange</bold></green>"
+    name: "<green><bold>▶ Click to Confirm</bold></green>"
     lore:
-      - "<gray>Please place required items in the left slots:</gray>"
+      - "<gray>Place required items in the left deposit slots:</gray>"
       - "<white>Cost: <aqua><cost_amount> <cost_item></aqua></white>"
-      - "<white>Receive: <gold><head_amount> of your own head(s)</gold></white>"
+      - "<white>Receive: <gold><head_amount> of your skin head</gold></white>"
       - ""
-      - "<gray>(Multi-slot deposit supported for quantities > 64)</gray>"
+      - "<gray>(Supports multiple stacks for quantities over 64)</gray>"
       - ""
-      - "<yellow>Click here once items are placed to complete purchase!</yellow>"
+      - "<yellow>Click here once items are placed!</yellow>"
   vault-button:
     lore:
-      - "<gray>Purchase a head with your own skin."
+      - "<gray>Purchase heads with your skin."
       - ""
-      - "<white>Receive: <gold><head_amount> of your own head(s)</gold></white>"
+      - "<white>Receive: <gold><head_amount> of your skin head</gold></white>"
       - "<white>Cost: <gold><cost_amount></gold></white>"
       - ""
       - "<green>▶ Click to purchase instantly!</green>"
   exp-level-button:
     lore:
-      - "<gray>Purchase a head with your own skin."
+      - "<gray>Purchase heads with your skin."
       - ""
-      - "<white>Receive: <gold><head_amount> of your own head(s)</gold></white>"
+      - "<white>Receive: <gold><head_amount> of your skin head</gold></white>"
       - "<white>Cost: <green><cost_amount></green></white>"
       - ""
-      - "<green>▶ Click to purchase with levels!</green>"
+      - "<green>▶ Click to deduct levels and buy!</green>"
   exp-points-button:
     lore:
-      - "<gray>Purchase a head with your own skin."
+      - "<gray>Purchase heads with your skin."
       - ""
-      - "<white>Receive: <gold><head_amount> of your own head(s)</gold></white>"
+      - "<white>Receive: <gold><head_amount> of your skin head</gold></white>"
       - "<white>Cost: <green><cost_amount></green></white>"
       - ""
-      - "<green>▶ Click to purchase with exp points!</green>"
+      - "<green>▶ Click to deduct exp points and buy!</green>"
   preview-head:
-    name: "<gold><bold>Receive: <head_amount> Head(s)</bold></gold>"
+    name: "<gold><bold>Receive: <head_amount> Player Head(s)</bold></gold>"
     lore:
-      - "<gray>Preview of the player head with your skin.</gray>"
-      - "<gray>Amounts exceeding 64 are automatically bundled in stacks.</gray>"
+      - "<gray>Preview of the head you will receive.</gray>"
+      - "<gray>Quantities over 64 are packaged into stacks.</gray>"
       - ""
-      - "<green>Clicking here also confirms the exchange!</green>"
+      - "<green>Click here to confirm trade as well!</green>"
   back-button:
-    name: "<red><bold>◀ Back to Shop Menu</bold></red>"
+    name: "<red><bold>◀ Return to Shop</bold></red>"
     lore:
-      - "<gray>Return to main menu. Unused items will be returned to your inventory.</gray>"
+      - "<gray>Return to menu. Leftover items will be returned.</gray>"
+
+  # Treasury GUI
+  treasury-title: "<gradient:#FFAA00:#FF5555><bold>Revenue Treasury</bold></gradient>"
+  treasury-vault:
+    name: "<gold><bold>💰 Withdraw Vault Money</bold></gold>"
+    lore:
+      - "<gray>Current treasury balance:</gray>"
+      - "<white>Balance: <gold><amount></gold></white>"
+      - ""
+      - "<green>▶ Click to withdraw full amount</green>"
+  treasury-exp:
+    name: "<green><bold>✨ Withdraw Experience</bold></green>"
+    lore:
+      - "<gray>Current treasury total experience:</gray>"
+      - "<white>Experience: <green><amount></green></white>"
+      - ""
+      - "<green>▶ Click to absorb full experience</green>"
+  treasury-logs:
+    name: "<aqua><bold>📜 Withdrawal Audit Logs</bold></aqua>"
+    lore:
+      - "<gray>Click to view admin withdrawal logs in chat.</gray>"
+  treasury-refresh:
+    name: "<yellow><bold>🔄 Refresh Treasury</bold></yellow>"
+    lore:
+      - "<gray>Click to reload latest treasury assets.</gray>"
 
 units:
   item: "<amount>x"
   stacks-exact: "<amount>x (<stacks> stacks)"
-  stacks-rem: "<amount>x (<stacks> stacks + <rem> items)"
-  exp-level: "<amount> Level(s)"
-  exp-points: "<amount> Exp Point(s)"
+  stacks-rem: "<amount>x (<stacks> stacks + <rem>x)"
+  exp-level: "<amount> Levels"
+  exp-points: "<amount> Exp Points"

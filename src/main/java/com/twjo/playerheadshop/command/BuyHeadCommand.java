@@ -4,14 +4,19 @@ import com.twjo.playerheadshop.PlayerHeadShop;
 import com.twjo.playerheadshop.config.PluginConfig;
 import com.twjo.playerheadshop.database.DatabaseManager;
 import com.twjo.playerheadshop.database.TradeRecord;
+import com.twjo.playerheadshop.database.TreasuryLogRecord;
 import com.twjo.playerheadshop.gui.HeadShopGui;
 import com.twjo.playerheadshop.lang.LanguageManager;
+import com.twjo.playerheadshop.treasury.TreasuryGui;
+import com.twjo.playerheadshop.treasury.TreasuryManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
+import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -19,7 +24,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 處理 /buyhead 指令、管理員熱重載、歷史查詢與 Tab 補全
+ * 處理 /buyhead 指令、管理員熱重載、交易歷史查詢、收益金庫與提領稽核日誌
  */
 public class BuyHeadCommand extends Command {
 
@@ -32,14 +37,19 @@ public class BuyHeadCommand extends Command {
     private final LanguageManager lang;
     private final HeadShopGui gui;
     private final DatabaseManager databaseManager;
+    private final TreasuryManager treasuryManager;
+    private final TreasuryGui treasuryGui;
 
-    public BuyHeadCommand(PlayerHeadShop plugin, PluginConfig config, LanguageManager lang, HeadShopGui gui, DatabaseManager databaseManager) {
-        super("buyhead", "購買自己的玩家頭顱", "/buyhead [reload|history]", List.of("playerheadshop", "headshop"));
+    public BuyHeadCommand(PlayerHeadShop plugin, PluginConfig config, LanguageManager lang, HeadShopGui gui,
+                          DatabaseManager databaseManager, TreasuryManager treasuryManager, TreasuryGui treasuryGui) {
+        super("buyhead", "購買自己的玩家頭顱", "/buyhead [reload|history|pool]", List.of("playerheadshop", "headshop"));
         this.plugin = plugin;
         this.config = config;
         this.lang = lang;
         this.gui = gui;
         this.databaseManager = databaseManager;
+        this.treasuryManager = treasuryManager;
+        this.treasuryGui = treasuryGui;
         setPermission(PERMISSION_USE);
     }
 
@@ -67,7 +77,17 @@ public class BuyHeadCommand extends Command {
             return true;
         }
 
-        // 3. 一般玩家開啟 GUI
+        // 3. 處理收益金庫子指令 /buyhead pool [...]
+        if (args.length > 0 && (args[0].equalsIgnoreCase("pool") || args[0].equalsIgnoreCase("treasury") || args[0].equalsIgnoreCase("bank"))) {
+            if (!sender.hasPermission(PERMISSION_ADMIN)) {
+                lang.sendMessage(sender, "no-permission");
+                return true;
+            }
+            handlePoolCommand(sender, args);
+            return true;
+        }
+
+        // 4. 一般玩家開啟購買選單
         if (!(sender instanceof Player player)) {
             lang.sendMessage(sender, "player-only");
             return true;
@@ -83,7 +103,174 @@ public class BuyHeadCommand extends Command {
     }
 
     /**
-     * 處理非同步歷史記錄查詢
+     * 處理 /buyhead pool 相關指令
+     */
+    private void handlePoolCommand(CommandSender sender, String[] args) {
+        if (!config.isPoolEnabled()) {
+            lang.sendMessage(sender, "treasury-disabled");
+            return;
+        }
+
+        // /buyhead pool (無參數)：開啟金庫 GUI
+        if (args.length == 1) {
+            if (!(sender instanceof Player player)) {
+                sendPoolInfo(sender);
+                return;
+            }
+            treasuryGui.open(player);
+            return;
+        }
+
+        String sub = args[1].toLowerCase();
+
+        // /buyhead pool info / balance
+        if (sub.equals("info") || sub.equals("balance") || sub.equals("status")) {
+            sendPoolInfo(sender);
+            return;
+        }
+
+        // /buyhead pool logs [page]
+        if (sub.equals("logs") || sub.equals("history") || sub.equals("audit")) {
+            int page = 1;
+            if (args.length >= 3) {
+                try {
+                    page = Integer.parseInt(args[2]);
+                } catch (NumberFormatException ignored) {}
+            }
+            handleTreasuryLogsQuery(sender, page);
+            return;
+        }
+
+        // /buyhead pool withdraw <money|exp|all>
+        if (sub.equals("withdraw") || sub.equals("take")) {
+            if (!(sender instanceof Player player)) {
+                lang.sendMessage(sender, "player-only");
+                return;
+            }
+
+            String type = (args.length >= 3) ? args[2].toLowerCase() : "all";
+            if (type.equals("money") || type.equals("vault")) {
+                withdrawPoolVault(player);
+            } else if (type.equals("exp") || type.equals("xp")) {
+                withdrawPoolExp(player);
+            } else {
+                withdrawPoolVault(player);
+                withdrawPoolExp(player);
+            }
+            return;
+        }
+
+        // 預設開啟 GUI
+        if (sender instanceof Player player) {
+            treasuryGui.open(player);
+        } else {
+            sendPoolInfo(sender);
+        }
+    }
+
+    private void sendPoolInfo(CommandSender sender) {
+        double vault = treasuryManager.getVaultBalance();
+        int exp = treasuryManager.getExpPoints();
+        int itemStacks = 0;
+        for (ItemStack s : treasuryManager.getItemsSnapshot()) {
+            if (s != null && !s.getType().isAir()) {
+                itemStacks++;
+            }
+        }
+
+        sender.sendMessage(lang.getComponent(sender, "messages.treasury-info-header"));
+        sender.sendMessage(lang.getComponent(sender, "messages.treasury-info-vault",
+                Placeholder.parsed("amount", plugin.getVaultHook().format(vault))));
+        sender.sendMessage(lang.getComponent(sender, "messages.treasury-info-exp",
+                Placeholder.parsed("amount", lang.formatExpPoints(sender, exp))));
+        sender.sendMessage(lang.getComponent(sender, "messages.treasury-info-items",
+                Placeholder.parsed("amount", String.valueOf(itemStacks))));
+    }
+
+    private void withdrawPoolVault(Player player) {
+        double balance = treasuryManager.getVaultBalance();
+        if (balance <= 0) {
+            lang.sendMessage(player, "treasury-empty-vault");
+            return;
+        }
+        if (treasuryManager.withdrawVault(player, balance)) {
+            plugin.getVaultHook().deposit(player, balance);
+            lang.sendMessage(player, "treasury-withdraw-vault-success",
+                    Placeholder.parsed("amount", plugin.getVaultHook().format(balance))
+            );
+            try {
+                player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.2f);
+            } catch (Throwable ignored) {}
+        }
+    }
+
+    private void withdrawPoolExp(Player player) {
+        int exp = treasuryManager.getExpPoints();
+        if (exp <= 0) {
+            lang.sendMessage(player, "treasury-empty-exp");
+            return;
+        }
+        if (treasuryManager.withdrawExp(player, exp)) {
+            lang.sendMessage(player, "treasury-withdraw-exp-success",
+                    Placeholder.parsed("amount", lang.formatExpPoints(player, exp))
+            );
+            try {
+                player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.2f);
+            } catch (Throwable ignored) {}
+        }
+    }
+
+    /**
+     * 查詢金庫管理員提領稽核日誌
+     */
+    private void handleTreasuryLogsQuery(CommandSender sender, int page) {
+        final int targetPage = Math.max(1, page);
+
+        databaseManager.getTotalTreasuryLogs().thenAccept(total -> {
+            if (total == 0) {
+                lang.sendMessage(sender, "treasury-logs-empty");
+                return;
+            }
+
+            int maxPage = (int) Math.ceil((double) total / PAGE_SIZE);
+            if (targetPage > maxPage) {
+                lang.sendMessage(sender, "treasury-logs-invalid-page",
+                        Placeholder.parsed("max_page", String.valueOf(maxPage))
+                );
+                return;
+            }
+
+            databaseManager.getTreasuryLogs(targetPage, PAGE_SIZE).thenAccept(logs -> {
+                sender.sendMessage(lang.getComponent(sender, "messages.treasury-logs-header",
+                        Placeholder.parsed("page", String.valueOf(targetPage)),
+                        Placeholder.parsed("max_page", String.valueOf(maxPage)),
+                        Placeholder.parsed("total", String.valueOf(total))
+                ));
+
+                for (TreasuryLogRecord rec : logs) {
+                    String detailStr = formatTreasuryLogDetail(sender, rec);
+                    sender.sendMessage(lang.getComponent(sender, "messages.treasury-logs-entry",
+                            Placeholder.parsed("time", rec.getFormattedTime()),
+                            Placeholder.parsed("admin", rec.getAdminName()),
+                            Placeholder.parsed("detail", detailStr)
+                    ));
+                }
+            });
+        });
+    }
+
+    private String formatTreasuryLogDetail(CommandSender sender, TreasuryLogRecord rec) {
+        if ("WITHDRAW_VAULT".equalsIgnoreCase(rec.getActionType())) {
+            return plugin.getVaultHook().format(rec.getAmount()) + " 金幣";
+        } else if ("WITHDRAW_EXP".equalsIgnoreCase(rec.getActionType())) {
+            return lang.formatExpPoints(sender, (int) Math.round(rec.getAmount()));
+        } else {
+            return (int) Math.round(rec.getAmount()) + " 個 " + rec.getDetail();
+        }
+    }
+
+    /**
+     * 處理非同步頭顱交易歷史記錄查詢
      */
     private void handleHistoryQuery(CommandSender sender, String[] args) {
         String playerFilter = null;
@@ -120,7 +307,6 @@ public class BuyHeadCommand extends Command {
             }
 
             databaseManager.getRecords(finalFilter, targetPage, PAGE_SIZE).thenAccept(records -> {
-                // 1. 發送頂部 Header
                 Component header;
                 if (finalFilter == null || finalFilter.isEmpty()) {
                     header = lang.getComponent(sender, "messages.history-header",
@@ -140,7 +326,6 @@ public class BuyHeadCommand extends Command {
                     sender.sendMessage(header);
                 }
 
-                // 2. 輸出每筆記錄
                 for (TradeRecord rec : records) {
                     Component entry = lang.getComponent(sender, "messages.history-entry",
                             Placeholder.parsed("time", rec.getFormattedTime()),
@@ -154,7 +339,6 @@ public class BuyHeadCommand extends Command {
                     }
                 }
 
-                // 3. 發送底部 Footer
                 Component footer = lang.getComponent(sender, "messages.history-footer");
                 if (!footer.equals(Component.empty())) {
                     sender.sendMessage(footer);
@@ -182,7 +366,7 @@ public class BuyHeadCommand extends Command {
         }
 
         if (args.length == 1) {
-            List<String> sub = List.of("reload", "history", "logs");
+            List<String> sub = List.of("reload", "history", "logs", "pool");
             List<String> list = new ArrayList<>();
             for (String s : sub) {
                 if (s.startsWith(args[0].toLowerCase())) {
@@ -190,6 +374,14 @@ public class BuyHeadCommand extends Command {
                 }
             }
             return list;
+        }
+
+        if (args.length == 2 && args[0].equalsIgnoreCase("pool")) {
+            return List.of("info", "logs", "withdraw");
+        }
+
+        if (args.length == 3 && args[0].equalsIgnoreCase("pool") && args[1].equalsIgnoreCase("withdraw")) {
+            return List.of("money", "exp", "all");
         }
 
         if (args.length == 2 && (args[0].equalsIgnoreCase("history") || args[0].equalsIgnoreCase("logs") || args[0].equalsIgnoreCase("log"))) {
@@ -202,10 +394,6 @@ public class BuyHeadCommand extends Command {
             list.add("1");
             list.add("2");
             return list;
-        }
-
-        if (args.length == 3 && (args[0].equalsIgnoreCase("history") || args[0].equalsIgnoreCase("logs") || args[0].equalsIgnoreCase("log"))) {
-            return List.of("1", "2", "3");
         }
 
         return Collections.emptyList();

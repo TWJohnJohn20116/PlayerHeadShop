@@ -18,7 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
- * 處理玩家頭顱兌換、背包物品檢查與扣除、Vault 貨幣扣款、經驗等級/點數扣除、放置介面多格扣除、頭顱生成與日誌。
+ * 處理玩家頭顱兌換、背包物品檢查與扣除、Vault 貨幣扣款、經驗扣除、收益金庫匯入與日誌。
  */
 public class HeadShopService {
 
@@ -76,10 +76,15 @@ public class HeadShopService {
             return false;
         }
 
-        // 3. 生成頭顱並發放
+        // 3. 收益金庫匯入
+        if (plugin.getPluginConfig().isPoolEnabled() && plugin.getPluginConfig().isPoolCollectVault() && plugin.getTreasuryManager() != null) {
+            plugin.getTreasuryManager().depositVault(costAmount);
+        }
+
+        // 4. 生成頭顱並發放
         giveHeads(player, headAmount, (int) Math.round(costAmount), "VAULT");
 
-        // 4. 發送 Vault 專屬成功提示
+        // 5. 發送 Vault 專屬成功提示
         lang.sendMessage(player, "vault-success",
                 Placeholder.parsed("cost_amount", plugin.getVaultHook().format(costAmount)),
                 Placeholder.parsed("head_amount", lang.formatAmount(player, headAmount))
@@ -115,6 +120,12 @@ public class HeadShopService {
 
         // 扣除等級
         player.setLevel(currentLevel - requiredLevel);
+
+        // 收益金庫匯入經驗值
+        if (plugin.getPluginConfig().isPoolEnabled() && plugin.getPluginConfig().isPoolCollectExp() && plugin.getTreasuryManager() != null) {
+            int pointsDeducted = ExperienceUtil.getTotalExpToLevel(currentLevel) - ExperienceUtil.getTotalExpToLevel(currentLevel - requiredLevel);
+            plugin.getTreasuryManager().depositExp(pointsDeducted);
+        }
 
         // 發放頭顱
         giveHeads(player, headAmount, requiredLevel, "EXP_LEVEL");
@@ -155,6 +166,11 @@ public class HeadShopService {
 
         // 安全扣除經驗點數並同步等級與經驗條
         ExperienceUtil.deductPlayerExp(player, requiredPoints);
+
+        // 收益金庫匯入
+        if (plugin.getPluginConfig().isPoolEnabled() && plugin.getPluginConfig().isPoolCollectExp() && plugin.getTreasuryManager() != null) {
+            plugin.getTreasuryManager().depositExp(requiredPoints);
+        }
 
         // 發放頭顱
         giveHeads(player, headAmount, requiredPoints, "EXP_POINTS");
@@ -212,7 +228,12 @@ public class HeadShopService {
         // 2. 安全扣除所需物品
         deductItems(player, costItem, requiredAmount);
 
-        // 3. 生成印有該玩家皮膚的頭顱物品堆疊清單並發放
+        // 3. 收益金庫匯入實體物品
+        if (plugin.getPluginConfig().isPoolEnabled() && plugin.getPluginConfig().isPoolCollectItems() && plugin.getTreasuryManager() != null) {
+            plugin.getTreasuryManager().depositItems(List.of(new ItemStack(costItem, requiredAmount)));
+        }
+
+        // 4. 生成印有該玩家皮膚的頭顱物品堆疊清單並發放
         giveHeads(player, headAmount, requiredAmount, costItem.name());
 
         // 發送物品購買成功提示
@@ -287,7 +308,12 @@ public class HeadShopService {
             }
         }
 
-        // 3. 生成頭顱並發放
+        // 3. 收益金庫匯入實體物品
+        if (plugin.getPluginConfig().isPoolEnabled() && plugin.getPluginConfig().isPoolCollectItems() && plugin.getTreasuryManager() != null) {
+            plugin.getTreasuryManager().depositItems(List.of(new ItemStack(costItem, requiredAmount)));
+        }
+
+        // 4. 生成頭顱並發放
         giveHeads(player, headAmount, requiredAmount, costItem.name());
 
         // 發送物品購買成功提示

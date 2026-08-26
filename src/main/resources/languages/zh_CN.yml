@@ -26,6 +26,21 @@ messages:
   history-empty: "<red>目前查无任何兑换记录！</red>"
   history-invalid-page: "<red>无效的页码！有效页码为 1 ~ <max_page>。</red>"
 
+  # 收益金库与审计日志
+  treasury-disabled: "<red>收益金库功能未启用 (pool.enabled: false)。</red>"
+  treasury-empty-vault: "<red>目前金库内没有任何可提领的 Vault 金币！</red>"
+  treasury-empty-exp: "<red>目前金库内没有任何可提领的经验值！</red>"
+  treasury-withdraw-vault-success: "<green>成功从收益金库提领了 <gold><amount></gold> 金币！</green>"
+  treasury-withdraw-exp-success: "<green>成功从收益金库提领了 <gold><amount></gold>！</green>"
+  treasury-info-header: "<gold><bold>=== PlayerHeadShop 收益金库资产状况 ===</bold></gold>"
+  treasury-info-vault: "<white>金库金币余额: <gold><amount></gold></white>"
+  treasury-info-exp: "<white>金库累积经验: <green><amount></green></white>"
+  treasury-info-items: "<white>金库实体物品: <aqua><amount> 种物品堆叠</aqua></white>"
+  treasury-logs-header: "<gold><bold>=== 金库管理员提领审计日志 (第 <page>/<max_page> 页，共 <total> 条) ===</bold></gold>"
+  treasury-logs-entry: "<gray>[<time>]</gray> 管理员 <yellow><admin></yellow> 提领了 <aqua><detail></aqua>"
+  treasury-logs-empty: "<red>目前查无任何金库提领审计记录！</red>"
+  treasury-logs-invalid-page: "<red>无效的页码！有效页码为 1 ~ <max_page>。</red>"
+
 gui:
   main-title: "<gradient:#FFAA00:#FF5555><bold>自定义头颅商店</bold></gradient>"
   deposit-title: "<gradient:#FFAA00:#FF5555><bold>放置物品兑换</bold></gradient> <gray>-</gray> <yellow><head_amount></yellow>"
@@ -74,6 +89,31 @@ gui:
     name: "<red><bold>◀ 返回方案菜单</bold></red>"
     lore:
       - "<gray>返回主菜单，未兑换的物品将自动归还至背包。</gray>"
+
+  # 收益金库 GUI
+  treasury-title: "<gradient:#FFAA00:#FF5555><bold>收益金库管理</bold></gradient>"
+  treasury-vault:
+    name: "<gold><bold>💰 提领 Vault 金币</bold></gold>"
+    lore:
+      - "<gray>目前金库累积金币总额：</gray>"
+      - "<white>余额: <gold><amount></gold></white>"
+      - ""
+      - "<green>▶ 点击全额提领至个人钱包</green>"
+  treasury-exp:
+    name: "<green><bold>✨ 提领经验值</bold></green>"
+    lore:
+      - "<gray>目前金库累积经验总点数：</gray>"
+      - "<white>经验: <green><amount></green></white>"
+      - ""
+      - "<green>▶ 点击全额吸收至个人经验条</green>"
+  treasury-logs:
+    name: "<aqua><bold>📜 提领审计日志</bold></aqua>"
+    lore:
+      - "<gray>点击在聊天室查看管理员提领记录。</gray>"
+  treasury-refresh:
+    name: "<yellow><bold>🔄 重新整理金库</bold></yellow>"
+    lore:
+      - "<gray>点击重新载入最新的金库物品与资产。</gray>"
 
 units:
   item: "<amount> 个"

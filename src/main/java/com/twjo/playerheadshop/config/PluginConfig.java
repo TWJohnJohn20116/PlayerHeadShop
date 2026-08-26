@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.logging.Level;
 
 /**
- * 管理 PlayerHeadShop 的主設定檔讀取、多種支付模式解析與 GUI 智慧自動排版
+ * 管理 PlayerHeadShop 的主設定檔讀取、收益金庫開關與 GUI 智慧自動排版
  */
 public class PluginConfig {
 
@@ -20,6 +20,12 @@ public class PluginConfig {
     private volatile boolean fillerEnabled = true;
     private volatile Material fillerMaterial = Material.GRAY_STAINED_GLASS_PANE;
     private volatile String fillerDisplayName = " ";
+
+    // 收益金庫設定
+    private volatile boolean poolEnabled = true;
+    private volatile boolean poolCollectItems = true;
+    private volatile boolean poolCollectVault = true;
+    private volatile boolean poolCollectExp = true;
 
     private volatile Map<Integer, ShopOption> options = Collections.emptyMap();
 
@@ -48,7 +54,13 @@ public class PluginConfig {
         this.fillerMaterial = (matchedFiller != null && !matchedFiller.isAir()) ? matchedFiller : Material.GRAY_STAINED_GLASS_PANE;
         this.fillerDisplayName = config.getString("gui.filler.display-name", " ");
 
-        // 3. 讀取 options 兌換方案清單
+        // 3. 讀取收益金庫設定
+        this.poolEnabled = config.getBoolean("pool.enabled", true);
+        this.poolCollectItems = config.getBoolean("pool.collect-items", true);
+        this.poolCollectVault = config.getBoolean("pool.collect-vault", true);
+        this.poolCollectExp = config.getBoolean("pool.collect-exp", true);
+
+        // 4. 讀取 options 兌換方案清單
         int maxSlots = this.guiRows * 9;
         List<ShopOption> manualOptions = new ArrayList<>();
         List<ShopOption> autoOptions = new ArrayList<>();
@@ -89,7 +101,7 @@ public class PluginConfig {
             }
         }
 
-        // 4. 計算自動排版位置
+        // 5. 計算自動排版位置
         Map<Integer, ShopOption> finalOptions = calculateLayout(manualOptions, autoOptions, maxSlots);
 
         // 若無任何方案，建立預設方案
@@ -102,9 +114,6 @@ public class PluginConfig {
         this.options = Collections.unmodifiableMap(finalOptions);
     }
 
-    /**
-     * 從 Map 解析單一方案
-     */
     private ShopOption parseOptionFromMap(Map<?, ?> entry, int maxSlots) {
         int slot = entry.containsKey("slot") ? ((Number) entry.get("slot")).intValue() : -1;
         if (slot >= maxSlots) {
@@ -112,7 +121,6 @@ public class PluginConfig {
             slot = -1;
         }
 
-        // 判斷支付類型 (ITEM, VAULT, EXP_LEVEL, EXP_POINTS)
         String typeStr = entry.containsKey("cost-type") ? String.valueOf(entry.get("cost-type")).toUpperCase() : "ITEM";
         String costItemStr = entry.containsKey("cost-item") ? String.valueOf(entry.get("cost-item")).toUpperCase() : "DIAMOND";
 
@@ -139,9 +147,6 @@ public class PluginConfig {
         return new ShopOption(slot, costType, displayName, lore, costItem, costAmount, headAmount);
     }
 
-    /**
-     * 從 ConfigurationSection 解析單一方案
-     */
     private ShopOption parseOptionFromSection(ConfigurationSection sec, int maxSlots) {
         if (sec == null) return null;
         int slot = sec.contains("slot") ? sec.getInt("slot") : -1;
@@ -183,14 +188,10 @@ public class PluginConfig {
         return ShopOption.CostType.ITEM;
     }
 
-    /**
-     * 智慧排版計算：結合手動指定 Slot 與未填寫 Slot 的最佳美觀佈局
-     */
     private Map<Integer, ShopOption> calculateLayout(List<ShopOption> manualOptions, List<ShopOption> autoOptions, int maxSlots) {
         Map<Integer, ShopOption> resultMap = new LinkedHashMap<>();
         Set<Integer> occupiedSlots = new HashSet<>();
 
-        // 1. 先置入手動指定的方案
         for (ShopOption opt : manualOptions) {
             if (opt.getSlot() >= 0 && opt.getSlot() < maxSlots) {
                 resultMap.put(opt.getSlot(), opt);
@@ -202,11 +203,9 @@ public class PluginConfig {
             return resultMap;
         }
 
-        // 2. 針對自動排版方案，計算最佳放置位置
         List<Integer> preferredSlots = getPreferredSlots(autoOptions.size(), this.guiRows);
         int autoIdx = 0;
 
-        // 優先嘗試對稱推薦位置
         for (int candidate : preferredSlots) {
             if (autoIdx >= autoOptions.size()) break;
             if (!occupiedSlots.contains(candidate) && candidate >= 0 && candidate < maxSlots) {
@@ -216,7 +215,6 @@ public class PluginConfig {
             }
         }
 
-        // 若還有剩餘未放下的方案，依序填補非邊框空位
         if (autoIdx < autoOptions.size()) {
             for (int r = 1; r < this.guiRows - 1; r++) {
                 for (int c = 1; c < 8; c++) {
@@ -231,7 +229,6 @@ public class PluginConfig {
             }
         }
 
-        // 最後若依然放不下，填入任意剩餘空格
         if (autoIdx < autoOptions.size()) {
             for (int s = 0; s < maxSlots; s++) {
                 if (autoIdx >= autoOptions.size()) break;
@@ -246,9 +243,6 @@ public class PluginConfig {
         return resultMap;
     }
 
-    /**
-     * 根據數量與行數生成最美觀的置中/對稱候選 Slot 清單
-     */
     private List<Integer> getPreferredSlots(int count, int rows) {
         int midRow = rows / 2;
         int rowStart = midRow * 9;
@@ -291,6 +285,22 @@ public class PluginConfig {
 
     public String getFillerDisplayName() {
         return fillerDisplayName;
+    }
+
+    public boolean isPoolEnabled() {
+        return poolEnabled;
+    }
+
+    public boolean isPoolCollectItems() {
+        return poolCollectItems;
+    }
+
+    public boolean isPoolCollectVault() {
+        return poolCollectVault;
+    }
+
+    public boolean isPoolCollectExp() {
+        return poolCollectExp;
     }
 
     public Map<Integer, ShopOption> getOptions() {

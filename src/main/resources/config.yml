@@ -12,29 +12,65 @@ language: "auto"
 
 # GUI 箱子介面設定
 gui:
+  # 主選單行數 (1 ~ 6，預設 3 行)
   rows: 3
+
+  # 空格填充背景玻璃板設定
   filler:
     enabled: true
     material: "GRAY_STAINED_GLASS_PANE"
     display-name: " "
 
-# 多種兌換方案清單
-# slot: 箱子格子編號 (0 ~ 53，例如 3 行介面為 0 ~ 26)
-# cost-item: 消耗物品 (有效 Bukkit Material 名稱，如 DIAMOND, EMERALD, GOLD_INGOT, NETHERITE_INGOT 等)
-# cost-amount: 消耗數量 (支援任意數量，大於 64 可在放置區分格放置)
-# head-amount: 獲得頭顱數量 (支援任意數量，大於 64 自動分組堆疊發放)
+# =======================================================
+#          收益金庫 / 收益池 (Treasury Pool) 設定
+# =======================================================
+pool:
+  # 總開關：是否啟用收益金庫功能
+  # true  - 玩家購買頭顱支付的物品/金幣/經驗將存入公用金庫，管理員可使用 /buyhead pool 領取
+  # false - 支付的物品/金幣/經驗直接扣除銷毀（傳統商店模式）
+  enabled: true
+
+  # 各類支付方式是否獨立匯入金庫（僅在 enabled: true 時生效）
+  collect-items: true            # 是否收集實體物品 (鑽石、綠寶石等)
+  collect-vault: true            # 是否收集 Vault 經濟貨幣
+  collect-exp: true              # 是否收集 經驗等級與經驗點數
+
+# =======================================================
+#                  兌換方案清單 (Options)
+# =======================================================
+# 欄位說明：
+#   slot:        介面格子位置 (0 ~ rows*9-1)。可省略或填 -1，系統將自動居中與對稱排版！
+#   cost-type:   消耗模式 (ITEM = 實體物品, VAULT = 經濟貨幣, EXP_LEVEL = 經驗等級, EXP_POINTS = 經驗點數)
+#   cost-item:   消耗物品材質 (當 cost-type 為 ITEM 時有效，例如 DIAMOND, EMERALD)
+#   cost-amount: 消耗數量 (物品數量、金幣金額或經驗等級/點數)
+#   head-amount: 獲得的頭顱數量 (可大於 64，系統會自動分組打包發放)
+#
+# 範例方案：
 options:
-  - slot: 11
+  # 方案一：1 顆鑽石 兌換 1 個頭顱 (自動排版)
+  - cost-type: "ITEM"
     cost-item: "DIAMOND"
     cost-amount: 1
     head-amount: 1
 
-  - slot: 13
+  # 方案二：7 顆鑽石 兌換 8 個頭顱 (自動排版)
+  - cost-type: "ITEM"
     cost-item: "DIAMOND"
     cost-amount: 7
     head-amount: 8
 
-  - slot: 15
+  # 方案三：50 顆鑽石 兌換 64 個 (1組) 頭顱 (自動排版)
+  - cost-type: "ITEM"
     cost-item: "DIAMOND"
     cost-amount: 50
     head-amount: 64
+
+  # 方案四：100 元伺服器貨幣 兌換 1 個頭顱 (Vault 經濟模式)
+  - cost-type: "VAULT"
+    cost-amount: 100.0
+    head-amount: 1
+
+  # 方案五：5 個經驗等級 兌換 2 個頭顱 (經驗等級模式)
+  - cost-type: "EXP_LEVEL"
+    cost-amount: 5
+    head-amount: 2

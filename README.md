@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>專為 Paper / Folia 1.21.4+ (Java 21) 設計的輕量級 Minecraft 自訂玩家頭顱購買插件</b><br>
-  支援箱子 GUI 選單、個人皮膚即時預覽、物品 / Vault 金幣 / 經驗等級 / 經驗點數多元支付、智慧自動排版、交易歷史查詢與完整多語言系統
+  支援箱子 GUI 選單、個人皮膚即時預覽、多元支付模式、智慧自動排版、收益金庫池與管理員提領稽核日誌、完整多語言系統
 </p>
 
 <p align="center">
@@ -33,21 +33,30 @@
   - `VAULT`：伺服器經濟金幣支付（直接扣款，軟依賴 Vault）。
   - `EXP_LEVEL`：經驗等級支付（直接扣除玩家等級數，如 5 等級）。
   - `EXP_POINTS`：精確經驗點數支付（原生公式計算並扣除經驗點數，如 300 點經驗）。
+- **🏛️ 收益金庫/收益池系統 (Treasury Pool)**：
+  - 設定檔自由選擇是否開啟 (`pool.enabled: true`)。
+  - 玩家購買頭顱支付的物品、Vault 金幣或經驗值自動匯入收益池。
+  - 管理員專屬 6 行金庫 GUI (`/buyhead pool`)，支援直接拿取物品、一鍵提領金幣與吸收經驗。
+  - **管理員提領稽核日誌 (Audit Log)**：精確記錄每位管理員提領時間、數量與項目，提供 `/buyhead pool logs` 查詢防止濫權。
 - **動態玩家皮膚預覽**：GUI 內的商品圖示自動渲染為點擊玩家自身的皮膚外觀 (`PLAYER_HEAD`)。
 - **完善防吞/防刷保護**：嚴格監聽所有事件，關閉介面或中斷時，放置區物品 **100% 自動安全歸還背包**。
-- **SQLite 交易歷史記錄**：內建非同步資料庫，完整記錄每筆兌換時間、玩家與消耗（標註 `ITEM`, `VAULT`, `EXP_LEVEL`, `EXP_POINTS`），管理員可隨時分頁查詢。
+- **SQLite 交易歷史記錄**：內建非同步資料庫，完整記錄每筆兌換時間、玩家與消耗，管理員可隨時分頁查詢。
 - **完整 i18n 多語言支援**：內建繁中 (`zh_TW`)、簡中 (`zh_CN`)、英文 (`en_US`)，支援 `language: "auto"` 自動依客戶端語言切換。
 - **原生 Folia 執行緒相容**：完美支援 Folia 區域多執行緒（Regionized Multi-threading），操作安全穩定。
 
 ---
 
-## 📋 指令與別名
+## 📋 指令與權限
 
-| 指令 | 別名 | 說明 | 預設權限 |
-| :--- | :--- | :--- | :--- |
-| `/buyhead` | `/playerheadshop`, `/headshop` | 開啟自訂頭顱商店 GUI 選單 | `playerheadshop.use` (所有人) |
-| `/buyhead history [玩家] [頁碼]` | `/buyhead logs`, `/buyhead log` | 查詢全服或特定玩家的兌換歷史記錄 | `playerheadshop.admin` (OP) |
-| `/buyhead reload` | - | 重新加載 `config.yml` 設定檔與語言檔 | `playerheadshop.admin` (OP) |
+| 指令 | 說明 | 預設權限 |
+| :--- | :--- | :--- |
+| `/buyhead` | 開啟自訂頭顱商店 GUI 選單 | `playerheadshop.use` (所有人) |
+| `/buyhead history [玩家] [頁碼]` | 查詢全服或特定玩家的兌換歷史記錄（別名 `/buyhead logs`） | `playerheadshop.admin` (OP) |
+| `/buyhead pool` | 開啟管理員收益金庫 GUI 選單 | `playerheadshop.admin` (OP) |
+| `/buyhead pool info` | 查看收益金庫即時資產狀況 | `playerheadshop.admin` (OP) |
+| `/buyhead pool withdraw <money\|exp\|all>` | 指令快速提領金庫金幣或經驗值 | `playerheadshop.admin` (OP) |
+| `/buyhead pool logs [頁碼]` | 查詢管理員提領稽核日誌 (Audit Logs) | `playerheadshop.admin` (OP) |
+| `/buyhead reload` | 重新加載 `config.yml` 設定檔與語言檔 | `playerheadshop.admin` (OP) |
 
 ---
 
@@ -68,6 +77,13 @@ gui:
     enabled: true
     material: "GRAY_STAINED_GLASS_PANE"
     display-name: " "
+
+# 收益金庫 (Treasury Pool) 設定
+pool:
+  enabled: true                  # 是否啟用收益金庫（false 則直接銷毀消耗）
+  collect-items: true            # 是否收集實體物品 (鑽石、綠寶石等)
+  collect-vault: true            # 是否收集 Vault 經濟貨幣
+  collect-exp: true              # 是否收集 經驗等級與經驗點數
 
 # 多種兌換方案清單 (若不填 slot 則自動計算對稱排版)
 options:
@@ -101,4 +117,4 @@ options:
 ```bash
 mvn clean package
 ```
-產出的 JAR 檔案將位於 `target/PlayerHeadShop-1.0.0.jar`。
+產出的 JAR 檔案將位於 `target/PlayerHeadShop-2.0.0-beta-2.jar`。

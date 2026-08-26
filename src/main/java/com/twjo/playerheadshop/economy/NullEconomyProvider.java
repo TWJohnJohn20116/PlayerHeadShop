@@ -28,6 +28,11 @@ public class NullEconomyProvider implements EconomyProvider {
     }
 
     @Override
+    public boolean deposit(Player player, double amount) {
+        return false;
+    }
+
+    @Override
     public String format(double amount) {
         return String.format("%.2f", amount);
     }

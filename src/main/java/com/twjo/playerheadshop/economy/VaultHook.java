@@ -59,6 +59,13 @@ public class VaultHook {
     }
 
     /**
+     * 安全給予玩家貨幣
+     */
+    public boolean deposit(Player player, double amount) {
+        return provider.deposit(player, amount);
+    }
+
+    /**
      * 格式化貨幣金額字串（如 $500.00 或 500 金幣）
      */
     public String format(double amount) {
