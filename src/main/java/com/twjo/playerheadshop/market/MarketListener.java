@@ -70,20 +70,11 @@ public class MarketListener implements Listener {
                         plugin.getHeadShopGui().open(player);
                     }
                 }
-                // 4. ➕ 一鍵上架我的頭顱 (Slot 48)
+                // 4. ➕ 上架我的頭顱設定選單 (Slot 48)
                 else if (slot == MarketGuiHolder.SHARE_SLOT) {
-                    marketManager.publishHead(
-                            player,
-                            player.getName() + " 的頭顱",
-                            config.getMarketDefaultCostType(),
-                            config.getMarketDefaultCostItem().name(),
-                            config.getMarketDefaultCostAmount(),
-                            config.getMarketDefaultHeadAmount()
-                    ).thenAccept(success -> {
-                        if (success) {
-                            marketGui.open(player, 1, false);
-                        }
-                    });
+                    if (plugin.getPublishGui() != null) {
+                        plugin.getPublishGui().open(player, null);
+                    }
                 }
                 // 5. 🎒 切換 全部/我的上架 (Slot 49)
                 else if (slot == MarketGuiHolder.MY_LISTINGS_SLOT) {

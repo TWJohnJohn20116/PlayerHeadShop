@@ -95,9 +95,9 @@ gui:
       - ""
       - "<green>Click here to confirm trade as well!</green>"
   back-button:
-    name: "<red><bold>◀ Return to Shop</bold></red>"
+    name: "<red><bold>◀ Back</bold></red>"
     lore:
-      - "<gray>Return to menu. Leftover items will be returned.</gray>"
+      - "<gray>Click to return to previous menu.</gray>"
 
   # Main Menu Market Entrance Button
   market-entrance:
@@ -151,9 +151,9 @@ gui:
     lore:
       - "<gray>Click to return to personal head shop.</gray>"
   market-share-btn:
-    name: "<green><bold>➕ Share / List My Head</bold></green>"
+    name: "<green><bold>➕ Publish / List My Head</bold></green>"
     lore:
-      - "<gray>Click to list your current skin head to the market!</gray>"
+      - "<gray>Click to open the head publishing setup menu!</gray>"
   market-my-btn:
     name: "<aqua><bold>🎒 My Listings</bold></aqua>"
     lore:
@@ -162,6 +162,42 @@ gui:
     name: "<gold><bold>🌍 All Market Listings</bold></gold>"
     lore:
       - "<gray>Click to return to the public marketplace.</gray>"
+
+  # Publish GUI
+  publish-title: "<gradient:#FFAA00:#FF5555><bold>Head Publishing Setup</bold></gradient>"
+  publish-mode:
+    name: "<gold><bold>📦 Payment Mode: <mode></bold></gold>"
+    lore:
+      - "<gray>Select the payment currency or item required from buyers.</gray>"
+      - "<gray>Current: <white><mode></white></gray>"
+      - ""
+      - "<green>▶ Click to cycle payment mode</green>"
+  publish-price:
+    name: "<gold><bold>💰 Set Price: <price></bold></gold>"
+    lore:
+      - "<gray>Current Price: <aqua><price></aqua></gray>"
+      - ""
+      - "<green>▶ Left Click: Open sign to enter custom price</green>"
+      - "<yellow>▶ Right Click: +1 / Shift+Right Click: +10 / Shift+Left: -1</yellow>"
+  publish-title-btn:
+    name: "<aqua><bold>🏷️ Custom Head Title</bold></aqua>"
+    lore:
+      - "<gray>Current: <white><title></white></gray>"
+      - ""
+      - "<green>▶ Click to open sign to enter custom title</green>"
+  publish-preview:
+    lore:
+      - "<gray>Seller: <yellow><seller></yellow></gray>"
+      - "<white>Item: <gold><head_amount> Player Head(s)</gold></white>"
+      - "<white>Price: <aqua><price></aqua></white>"
+      - ""
+      - "<gray>This is how your listing will appear in the market.</gray>"
+  publish-confirm:
+    name: "<green><bold>✔ Confirm and Publish</bold></green>"
+    lore:
+      - "<gray>Confirm settings and publish your head to the market!</gray>"
+      - ""
+      - "<green>▶ Click to list immediately!</green>"
 
 units:
   item: "<amount>x"

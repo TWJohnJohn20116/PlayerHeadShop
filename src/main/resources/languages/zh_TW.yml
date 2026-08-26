@@ -95,9 +95,9 @@ gui:
       - ""
       - "<green>點擊此處亦可確認兌換！</green>"
   back-button:
-    name: "<red><bold>◀ 返回方案選單</bold></red>"
+    name: "<red><bold>◀ 返回</bold></red>"
     lore:
-      - "<gray>返回主選單，未兌換的物品將自動歸還至背包。</gray>"
+      - "<gray>點擊返回上一頁選單。</gray>"
 
   # 商店主選單中的市集入口按鈕
   market-entrance:
@@ -151,9 +151,9 @@ gui:
     lore:
       - "<gray>點擊返回個人皮膚頭顱購買選單。</gray>"
   market-share-btn:
-    name: "<green><bold>➕ 一鍵分享/上架我的頭顱</bold></green>"
+    name: "<green><bold>➕ 發布/上架我的頭顱</bold></green>"
     lore:
-      - "<gray>點擊將自己當前的皮膚頭顱上架至市集！</gray>"
+      - "<gray>點擊開啟自訂上架設定選單！</gray>"
   market-my-btn:
     name: "<aqua><bold>🎒 我的上架管理</bold></aqua>"
     lore:
@@ -162,6 +162,42 @@ gui:
     name: "<gold><bold>🌍 返回全部市集</bold></gold>"
     lore:
       - "<gray>點擊返回全服社群頭顱大廳。</gray>"
+
+  # 頭顱上架設定 GUI
+  publish-title: "<gradient:#FFAA00:#FF5555><bold>頭顱上架設定</bold></gradient>"
+  publish-mode:
+    name: "<gold><bold>📦 支付模式: <mode></bold></gold>"
+    lore:
+      - "<gray>選擇買家購買你的頭顱時需支付的貨幣/物品。</gray>"
+      - "<gray>目前模式: <white><mode></white></gray>"
+      - ""
+      - "<green>▶ 點擊循環切換支付模式</green>"
+  publish-price:
+    name: "<gold><bold>💰 設定售價: <price></bold></gold>"
+    lore:
+      - "<gray>目前設定售價: <aqua><price></aqua></gray>"
+      - ""
+      - "<green>▶ 左鍵點擊: 開啟告示牌輸入自訂金額</green>"
+      - "<yellow>▶ 右鍵點擊: +1 / Shift+右鍵: +10 / Shift+左鍵: -1</yellow>"
+  publish-title-btn:
+    name: "<aqua><bold>🏷️ 自訂頭顱名稱</bold></aqua>"
+    lore:
+      - "<gray>目前名稱: <white><title></white></gray>"
+      - ""
+      - "<green>▶ 點擊開啟告示牌輸入自訂名稱</green>"
+  publish-preview:
+    lore:
+      - "<gray>賣家: <yellow><seller></yellow></gray>"
+      - "<white>商品: <gold><head_amount> 個人頭顱</gold></white>"
+      - "<white>售價: <aqua><price></aqua></white>"
+      - ""
+      - "<gray>這是上架後在社群市集中呈現的樣貌。</gray>"
+  publish-confirm:
+    name: "<green><bold>✔ 確認發布上架</bold></green>"
+    lore:
+      - "<gray>確認以上設定並將此頭顱發布至社群市集！</gray>"
+      - ""
+      - "<green>▶ 點擊立即上架！</green>"
 
 units:
   item: "<amount> 個"

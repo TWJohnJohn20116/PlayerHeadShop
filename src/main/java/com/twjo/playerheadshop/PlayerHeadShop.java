@@ -10,6 +10,9 @@ import com.twjo.playerheadshop.lang.LanguageManager;
 import com.twjo.playerheadshop.market.MarketGui;
 import com.twjo.playerheadshop.market.MarketListener;
 import com.twjo.playerheadshop.market.MarketManager;
+import com.twjo.playerheadshop.market.PublishGui;
+import com.twjo.playerheadshop.market.PublishListener;
+import com.twjo.playerheadshop.market.SignInputManager;
 import com.twjo.playerheadshop.service.HeadShopService;
 import com.twjo.playerheadshop.treasury.TreasuryGui;
 import com.twjo.playerheadshop.treasury.TreasuryListener;
@@ -28,10 +31,12 @@ public final class PlayerHeadShop extends JavaPlugin {
     private DatabaseManager databaseManager;
     private TreasuryManager treasuryManager;
     private MarketManager marketManager;
+    private SignInputManager signInputManager;
     private HeadShopService headShopService;
     private HeadShopGui headShopGui;
     private TreasuryGui treasuryGui;
     private MarketGui marketGui;
+    private PublishGui publishGui;
 
     @Override
     public void onEnable() {
@@ -47,19 +52,23 @@ public final class PlayerHeadShop extends JavaPlugin {
         this.databaseManager = new DatabaseManager(this);
         this.treasuryManager = new TreasuryManager(this, this.databaseManager);
         this.marketManager = new MarketManager(this, this.databaseManager, this.languageManager);
+        this.signInputManager = new SignInputManager(this);
         this.headShopService = new HeadShopService(this, this.languageManager, this.databaseManager);
         this.headShopGui = new HeadShopGui(this, this.pluginConfig, this.languageManager);
         this.treasuryGui = new TreasuryGui(this, this.languageManager, this.treasuryManager);
         this.marketGui = new MarketGui(this, this.databaseManager, this.languageManager);
+        this.publishGui = new PublishGui(this, this.languageManager);
 
-        // 註冊事件監聽器 (商店選單、放置兌換、收益金庫與社群市集)
+        // 註冊事件監聽器 (商店選單、放置兌換、收益金庫、社群市集、發布選單與告示牌輸入)
         getServer().getPluginManager().registerEvents(new HeadShopListener(this, this.headShopService, this.headShopGui), this);
         getServer().getPluginManager().registerEvents(new TreasuryListener(this, this.languageManager, this.treasuryManager, this.treasuryGui), this);
         getServer().getPluginManager().registerEvents(new MarketListener(this, this.marketManager, this.marketGui, this.pluginConfig), this);
+        getServer().getPluginManager().registerEvents(new PublishListener(this, this.publishGui, this.marketManager, this.signInputManager), this);
+        getServer().getPluginManager().registerEvents(this.signInputManager, this);
 
         // 註冊指令至伺服器 CommandMap (相容 Paper 現代架構與傳統伺服器)
         BuyHeadCommand buyHeadCommand = new BuyHeadCommand(this, this.pluginConfig, this.languageManager, this.headShopGui,
-                this.databaseManager, this.treasuryManager, this.treasuryGui, this.marketManager, this.marketGui);
+                this.databaseManager, this.treasuryManager, this.treasuryGui);
         getServer().getCommandMap().register("playerheadshop", buyHeadCommand);
 
         if (this.vaultHook.hasEconomy()) {
@@ -68,7 +77,7 @@ public final class PlayerHeadShop extends JavaPlugin {
             getLogger().info("未檢測到 Vault 經濟插件，僅啟用物品兌換模式。");
         }
 
-        getLogger().info("PlayerHeadShop v" + getPluginMeta().getVersion() + " (Vault, Database, Treasury, Market & i18n enabled) 已成功加載並啟用！");
+        getLogger().info("PlayerHeadShop v" + getPluginMeta().getVersion() + " (Vault, Database, Treasury, GUI Market & i18n enabled) 已成功加載並啟用！");
     }
 
     @Override
@@ -111,6 +120,10 @@ public final class PlayerHeadShop extends JavaPlugin {
         return marketManager;
     }
 
+    public SignInputManager getSignInputManager() {
+        return signInputManager;
+    }
+
     public HeadShopService getHeadShopService() {
         return headShopService;
     }
@@ -125,5 +138,9 @@ public final class PlayerHeadShop extends JavaPlugin {
 
     public MarketGui getMarketGui() {
         return marketGui;
+    }
+
+    public PublishGui getPublishGui() {
+        return publishGui;
     }
 }
