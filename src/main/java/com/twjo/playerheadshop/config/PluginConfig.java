@@ -4,12 +4,17 @@ import com.twjo.playerheadshop.PlayerHeadShop;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 
+import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.logging.Level;
 
 /**
- * 管理 PlayerHeadShop 的主設定檔讀取、收益金庫、社群市集與 GUI 智慧自動排版
+ * 管理 PlayerHeadShop 的主設定檔讀取、收益金庫、社群市集、GUI 智慧自動排版與版本自動同步
  */
 public class PluginConfig {
 
@@ -43,11 +48,14 @@ public class PluginConfig {
     }
 
     /**
-     * 重新加載主設定檔與方案
+     * 重新加載主設定檔與方案，並自動增量同步新版本設定項目
      */
     public synchronized void reload() {
         plugin.reloadConfig();
         FileConfiguration config = plugin.getConfig();
+
+        // 0. 自動增量同步缺失的新版本設定項至本地 config.yml
+        syncConfigFile(config);
 
         // 1. 讀取語言設定
         this.language = config.getString("language", "auto");
@@ -131,6 +139,32 @@ public class PluginConfig {
         }
 
         this.options = Collections.unmodifiableMap(finalOptions);
+    }
+
+    private void syncConfigFile(FileConfiguration config) {
+        File configFile = new File(plugin.getDataFolder(), "config.yml");
+        if (!configFile.exists()) {
+            return;
+        }
+
+        try (InputStream defaultStream = plugin.getResource("config.yml")) {
+            if (defaultStream != null) {
+                YamlConfiguration defaultCfg = YamlConfiguration.loadConfiguration(new InputStreamReader(defaultStream, StandardCharsets.UTF_8));
+                boolean modified = false;
+                for (String defaultKey : defaultCfg.getKeys(true)) {
+                    if (!config.contains(defaultKey, true)) {
+                        config.set(defaultKey, defaultCfg.get(defaultKey));
+                        modified = true;
+                    }
+                }
+                if (modified) {
+                    config.save(configFile);
+                    plugin.getLogger().info("已自動將新版本設定項同步至本地 config.yml！");
+                }
+            }
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.WARNING, "同步 config.yml 預設設定時發生錯誤", e);
+        }
     }
 
     private ShopOption parseOptionFromMap(Map<?, ?> entry, int maxSlots) {
