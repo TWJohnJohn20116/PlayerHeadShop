@@ -18,6 +18,18 @@ messages:
   no-permission: "<red>你没有权限使用此指令！</red>"
   player-only: "<red>此指令仅限游戏内玩家使用。</red>"
 
+  # 帮助清单
+  help-header: "<gold><bold>=== PlayerHeadShop 指令帮助清单 ===</bold></gold>"
+  help-buyhead: "<yellow>/buyhead</yellow> <gray>- 开启自定义头颅商店菜单 (含社区市集入口)</gray>"
+  help-help: "<yellow>/buyhead help</yellow> <gray>- 查看此指令说明清单</gray>"
+  help-admin-header: "<gold><bold>--- 管理员指令 ---</bold></gold>"
+  help-reload: "<yellow>/buyhead reload</yellow> <gray>- 重新加载配置文件与语言文件</gray>"
+  help-pool: "<yellow>/buyhead pool</yellow> <gray>- 开启收益金库管理界面</gray>"
+  help-pool-info: "<yellow>/buyhead pool info</yellow> <gray>- 查看收益金库资产状况</gray>"
+  help-pool-logs: "<yellow>/buyhead pool logs [页码]</yellow> <gray>- 查询管理员提领审计记录</gray>"
+  help-pool-withdraw: "<yellow>/buyhead pool withdraw [金币/经验/全部]</yellow> <gray>- 提领金库累积资产</gray>"
+  help-history: "<yellow>/buyhead history [玩家] [页码]</yellow> <gray>- 查询全服头颅兑换交易记录</gray>"
+
   # 兑换历史记录
   history-header: "<gold><bold>=== 头颅兑换记录 (第 <page>/<max_page> 页，共 <total> 条) ===</bold></gold>"
   history-player-header: "<gold><bold>=== <player> 的兑换记录 (第 <page>/<max_page> 页，共 <total> 条) ===</bold></gold>"

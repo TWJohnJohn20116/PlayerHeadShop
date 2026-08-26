@@ -18,6 +18,18 @@ messages:
   no-permission: "<red>你沒有權限使用此指令！</red>"
   player-only: "<red>此指令僅限遊戲內玩家使用。</red>"
 
+  # 幫助清單
+  help-header: "<gold><bold>=== PlayerHeadShop 指令幫助清單 ===</bold></gold>"
+  help-buyhead: "<yellow>/buyhead</yellow> <gray>- 開啟自訂頭顱商店選單 (含社群市集入口)</gray>"
+  help-help: "<yellow>/buyhead help</yellow> <gray>- 查看此指令說明清單</gray>"
+  help-admin-header: "<gold><bold>--- 管理員指令 ---</bold></gold>"
+  help-reload: "<yellow>/buyhead reload</yellow> <gray>- 重新載入設定檔與語言檔</gray>"
+  help-pool: "<yellow>/buyhead pool</yellow> <gray>- 開啟收益金庫管理介面</gray>"
+  help-pool-info: "<yellow>/buyhead pool info</yellow> <gray>- 查看收益金庫資產狀況</gray>"
+  help-pool-logs: "<yellow>/buyhead pool logs [頁碼]</yellow> <gray>- 查詢管理員提領稽核記錄</gray>"
+  help-pool-withdraw: "<yellow>/buyhead pool withdraw [金幣/經驗/全部]</yellow> <gray>- 提領金庫累積資產</gray>"
+  help-history: "<yellow>/buyhead history [玩家] [頁碼]</yellow> <gray>- 查詢全服頭顱兌換交易記錄</gray>"
+
   # 兌換歷史記錄
   history-header: "<gold><bold>=== 頭顱兌換記錄 (第 <page>/<max_page> 頁，共 <total> 筆) ===</bold></gold>"
   history-player-header: "<gold><bold>=== <player> 的兌換記錄 (第 <page>/<max_page> 頁，共 <total> 筆) ===</bold></gold>"

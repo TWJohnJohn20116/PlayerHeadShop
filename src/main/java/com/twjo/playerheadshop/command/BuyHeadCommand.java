@@ -24,7 +24,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 處理 /buyhead 指令、管理員熱重載、交易歷史與收益金庫管理
+ * 處理 /buyhead 指令、幫助清單、管理員熱重載、交易歷史與收益金庫管理
  */
 public class BuyHeadCommand extends Command {
 
@@ -42,7 +42,7 @@ public class BuyHeadCommand extends Command {
 
     public BuyHeadCommand(PlayerHeadShop plugin, PluginConfig config, LanguageManager lang, HeadShopGui gui,
                           DatabaseManager databaseManager, TreasuryManager treasuryManager, TreasuryGui treasuryGui) {
-        super("buyhead", "購買與自訂玩家頭顱", "/buyhead [history|pool|reload]", List.of("playerheadshop", "headshop"));
+        super("buyhead", "購買與自訂玩家頭顱", "/buyhead [help|history|pool|reload]", List.of("playerheadshop", "headshop"));
         this.plugin = plugin;
         this.config = config;
         this.lang = lang;
@@ -55,7 +55,13 @@ public class BuyHeadCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
-        // 1. 處理重載子指令 /buyhead reload
+        // 1. 處理幫助說明指令 /buyhead help 或 /buyhead ?
+        if (args.length > 0 && (args[0].equalsIgnoreCase("help") || args[0].equalsIgnoreCase("?") || args[0].equalsIgnoreCase("info"))) {
+            sendHelp(sender);
+            return true;
+        }
+
+        // 2. 處理重載子指令 /buyhead reload
         if (args.length > 0 && args[0].equalsIgnoreCase("reload")) {
             if (!sender.hasPermission(PERMISSION_ADMIN)) {
                 lang.sendMessage(sender, "no-permission");
@@ -67,7 +73,7 @@ public class BuyHeadCommand extends Command {
             return true;
         }
 
-        // 2. 處理兌換歷史查詢子指令 /buyhead history [玩家] [頁碼]
+        // 3. 處理兌換歷史查詢子指令 /buyhead history [玩家] [頁碼]
         if (args.length > 0 && (args[0].equalsIgnoreCase("history") || args[0].equalsIgnoreCase("logs") || args[0].equalsIgnoreCase("log"))) {
             if (!sender.hasPermission(PERMISSION_ADMIN)) {
                 lang.sendMessage(sender, "no-permission");
@@ -77,7 +83,7 @@ public class BuyHeadCommand extends Command {
             return true;
         }
 
-        // 3. 處理收益金庫子指令 /buyhead pool [...]
+        // 4. 處理收益金庫子指令 /buyhead pool [...]
         if (args.length > 0 && (args[0].equalsIgnoreCase("pool") || args[0].equalsIgnoreCase("treasury") || args[0].equalsIgnoreCase("bank"))) {
             if (!sender.hasPermission(PERMISSION_ADMIN)) {
                 lang.sendMessage(sender, "no-permission");
@@ -87,9 +93,9 @@ public class BuyHeadCommand extends Command {
             return true;
         }
 
-        // 4. 一般玩家開啟購買選單
+        // 5. 一般玩家開啟購買選單
         if (!(sender instanceof Player player)) {
-            lang.sendMessage(sender, "player-only");
+            sendHelp(sender);
             return true;
         }
 
@@ -100,6 +106,22 @@ public class BuyHeadCommand extends Command {
 
         gui.open(player);
         return true;
+    }
+
+    private void sendHelp(CommandSender sender) {
+        sender.sendMessage(lang.getComponent(sender, "messages.help-header"));
+        sender.sendMessage(lang.getComponent(sender, "messages.help-buyhead"));
+        sender.sendMessage(lang.getComponent(sender, "messages.help-help"));
+
+        if (sender.hasPermission(PERMISSION_ADMIN)) {
+            sender.sendMessage(lang.getComponent(sender, "messages.help-admin-header"));
+            sender.sendMessage(lang.getComponent(sender, "messages.help-reload"));
+            sender.sendMessage(lang.getComponent(sender, "messages.help-pool"));
+            sender.sendMessage(lang.getComponent(sender, "messages.help-pool-info"));
+            sender.sendMessage(lang.getComponent(sender, "messages.help-pool-logs"));
+            sender.sendMessage(lang.getComponent(sender, "messages.help-pool-withdraw"));
+            sender.sendMessage(lang.getComponent(sender, "messages.help-history"));
+        }
     }
 
     private void handlePoolCommand(CommandSender sender, String[] args) {
@@ -347,8 +369,15 @@ public class BuyHeadCommand extends Command {
 
     @Override
     public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, @NotNull String[] args) {
-        if (args.length == 1 && sender.hasPermission(PERMISSION_ADMIN)) {
-            List<String> list = List.of("reload", "history", "logs", "pool");
+        if (args.length == 1) {
+            List<String> list = new ArrayList<>();
+            list.add("help");
+            if (sender.hasPermission(PERMISSION_ADMIN)) {
+                list.add("reload");
+                list.add("history");
+                list.add("logs");
+                list.add("pool");
+            }
             List<String> res = new ArrayList<>();
             for (String s : list) {
                 if (s.startsWith(args[0].toLowerCase())) {

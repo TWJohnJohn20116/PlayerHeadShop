@@ -18,6 +18,18 @@ messages:
   no-permission: "<red>You do not have permission to use this command!</red>"
   player-only: "<red>This command can only be executed by players in-game.</red>"
 
+  # Help Menu
+  help-header: "<gold><bold>=== PlayerHeadShop Help Commands ===</bold></gold>"
+  help-buyhead: "<yellow>/buyhead</yellow> <gray>- Open Head Shop Menu (Includes Community Market)</gray>"
+  help-help: "<yellow>/buyhead help</yellow> <gray>- Show this help message list</gray>"
+  help-admin-header: "<gold><bold>--- Admin Commands ---</bold></gold>"
+  help-reload: "<yellow>/buyhead reload</yellow> <gray>- Reload configurations and language files</gray>"
+  help-pool: "<yellow>/buyhead pool</yellow> <gray>- Open revenue treasury GUI</gray>"
+  help-pool-info: "<yellow>/buyhead pool info</yellow> <gray>- View revenue treasury asset status</gray>"
+  help-pool-logs: "<yellow>/buyhead pool logs [page]</yellow> <gray>- View admin withdrawal audit logs</gray>"
+  help-pool-withdraw: "<yellow>/buyhead pool withdraw [type]</yellow> <gray>- Withdraw treasury assets</gray>"
+  help-history: "<yellow>/buyhead history [player] [page]</yellow> <gray>- Query all trade history records</gray>"
+
   # Trade History
   history-header: "<gold><bold>=== Trade History (Page <page>/<max_page>, Total <total>) ===</bold></gold>"
   history-player-header: "<gold><bold>=== Trade History for <player> (Page <page>/<max_page>, Total <total>) ===</bold></gold>"
