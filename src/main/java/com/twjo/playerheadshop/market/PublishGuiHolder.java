@@ -79,12 +79,17 @@ public class PublishGuiHolder implements InventoryHolder {
         }
     }
 
-    public void cycleCostType() {
+    public void cycleCostType(boolean hasVault) {
         if (costType == ShopOption.CostType.ITEM && costItem == Material.DIAMOND) {
             costItem = Material.EMERALD;
         } else if (costType == ShopOption.CostType.ITEM && costItem == Material.EMERALD) {
-            costType = ShopOption.CostType.VAULT;
-            costItem = Material.GOLD_INGOT;
+            if (hasVault) {
+                costType = ShopOption.CostType.VAULT;
+                costItem = Material.GOLD_INGOT;
+            } else {
+                costType = ShopOption.CostType.EXP_LEVEL;
+                costItem = Material.EXPERIENCE_BOTTLE;
+            }
         } else if (costType == ShopOption.CostType.VAULT) {
             costType = ShopOption.CostType.EXP_LEVEL;
             costItem = Material.EXPERIENCE_BOTTLE;

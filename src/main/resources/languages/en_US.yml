@@ -101,7 +101,7 @@ gui:
 
   # Main Menu Market Entrance Button
   market-entrance:
-    name: "<gradient:#FFAA00:#FF5555><bold>🌍 Community Head Market</bold></gradient>"
+    name: "<gradient:#FFAA00:#FF5555><bold>✦ Community Head Market</bold></gradient>"
     lore:
       - "<gray>Browse heads published by players across the server!</gray>"
       - "<gray>You can also share and list your own head.</gray>"
@@ -111,21 +111,21 @@ gui:
   # Treasury GUI
   treasury-title: "<gradient:#FFAA00:#FF5555><bold>Revenue Treasury</bold></gradient>"
   treasury-vault:
-    name: "<gold><bold>💰 Withdraw Vault Money</bold></gold>"
+    name: "<gold><bold>[Wallet] Withdraw Vault Money</bold></gold>"
     lore:
       - "<gray>Current treasury balance:</gray>"
       - "<white>Balance: <gold><amount></gold></white>"
       - ""
       - "<green>▶ Click to withdraw full amount</green>"
   treasury-exp:
-    name: "<green><bold>✨ Withdraw Experience</bold></green>"
+    name: "<green><bold>[Exp] Withdraw Experience</bold></green>"
     lore:
       - "<gray>Current treasury total experience:</gray>"
       - "<white>Experience: <green><amount></green></white>"
       - ""
       - "<green>▶ Click to absorb full experience</green>"
   treasury-logs:
-    name: "<aqua><bold>📜 Withdrawal Audit Logs</bold></aqua>"
+    name: "<aqua><bold>[Logs] Withdrawal Audit Logs</bold></aqua>"
     lore:
       - "<gray>Click to view admin withdrawal logs in chat.</gray>"
   treasury-refresh:
@@ -151,36 +151,36 @@ gui:
     lore:
       - "<gray>Click to return to personal head shop.</gray>"
   market-share-btn:
-    name: "<green><bold>➕ Publish / List My Head</bold></green>"
+    name: "<green><bold>+ Publish / List My Head</bold></green>"
     lore:
       - "<gray>Click to open the head publishing setup menu!</gray>"
   market-my-btn:
-    name: "<aqua><bold>🎒 My Listings</bold></aqua>"
+    name: "<aqua><bold>[List] My Listings</bold></aqua>"
     lore:
       - "<gray>Click to manage your active listings.</gray>"
   market-all-btn:
-    name: "<gold><bold>🌍 All Market Listings</bold></gold>"
+    name: "<gold><bold>[Market] All Market Listings</bold></gold>"
     lore:
       - "<gray>Click to return to the public marketplace.</gray>"
 
   # Publish GUI
   publish-title: "<gradient:#FFAA00:#FF5555><bold>Head Publishing Setup</bold></gradient>"
   publish-mode:
-    name: "<gold><bold>📦 Payment Mode: <mode></bold></gold>"
+    name: "<gold><bold>Mode: <mode></bold></gold>"
     lore:
       - "<gray>Select the payment currency or item required from buyers.</gray>"
       - "<gray>Current: <white><mode></white></gray>"
       - ""
       - "<green>▶ Click to cycle payment mode</green>"
   publish-price:
-    name: "<gold><bold>💰 Set Price: <price></bold></gold>"
+    name: "<gold><bold>Price: <price></bold></gold>"
     lore:
       - "<gray>Current Price: <aqua><price></aqua></gray>"
       - ""
       - "<green>▶ Left Click: Open sign to enter custom price</green>"
       - "<yellow>▶ Right Click: +1 / Shift+Right Click: +10 / Shift+Left: -1</yellow>"
   publish-title-btn:
-    name: "<aqua><bold>🏷️ Custom Head Title</bold></aqua>"
+    name: "<aqua><bold>Custom Head Title</bold></aqua>"
     lore:
       - "<gray>Current: <white><title></white></gray>"
       - ""

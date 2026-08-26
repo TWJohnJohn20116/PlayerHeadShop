@@ -40,7 +40,7 @@ public class PublishListener implements Listener {
 
                 // 1. 切換支付模式 (Slot 10)
                 if (slot == PublishGuiHolder.MODE_SLOT) {
-                    holder.cycleCostType();
+                    holder.cycleCostType(plugin.getVaultHook().hasEconomy());
                     publishGui.open(player, holder);
                 }
                 // 2. 設定售價金額 (Slot 12)

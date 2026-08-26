@@ -101,7 +101,7 @@ gui:
 
   # 商店主選單中的市集入口按鈕
   market-entrance:
-    name: "<gradient:#FFAA00:#FF5555><bold>🌍 前往社群頭顱市集</bold></gradient>"
+    name: "<gradient:#FFAA00:#FF5555><bold>✦ 前往社群頭顱市集</bold></gradient>"
     lore:
       - "<gray>瀏覽全服其他玩家上架分享的自訂頭顱！</gray>"
       - "<gray>你也可以隨時上架自己的頭顱供大家購買。</gray>"
@@ -111,21 +111,21 @@ gui:
   # 收益金庫 GUI
   treasury-title: "<gradient:#FFAA00:#FF5555><bold>收益金庫管理</bold></gradient>"
   treasury-vault:
-    name: "<gold><bold>💰 提領 Vault 金幣</bold></gold>"
+    name: "<gold><bold>[錢包] 提領 Vault 金幣</bold></gold>"
     lore:
       - "<gray>目前金庫累積金幣總額：</gray>"
       - "<white>餘額: <gold><amount></gold></white>"
       - ""
       - "<green>▶ 點擊全額提領至個人錢包</green>"
   treasury-exp:
-    name: "<green><bold>✨ 提領經驗值</bold></green>"
+    name: "<green><bold>[經驗] 提領經驗值</bold></green>"
     lore:
       - "<gray>目前金庫累積經驗總點數：</gray>"
       - "<white>經驗: <green><amount></green></white>"
       - ""
       - "<green>▶ 點擊全額吸收至個人經驗條</green>"
   treasury-logs:
-    name: "<aqua><bold>📜 提領稽核日誌</bold></aqua>"
+    name: "<aqua><bold>[日誌] 提領稽核日誌</bold></aqua>"
     lore:
       - "<gray>點擊在聊天室查看管理員提領記錄。</gray>"
   treasury-refresh:
@@ -151,36 +151,36 @@ gui:
     lore:
       - "<gray>點擊返回個人皮膚頭顱購買選單。</gray>"
   market-share-btn:
-    name: "<green><bold>➕ 發布/上架我的頭顱</bold></green>"
+    name: "<green><bold>+ 發布/上架我的頭顱</bold></green>"
     lore:
       - "<gray>點擊開啟自訂上架設定選單！</gray>"
   market-my-btn:
-    name: "<aqua><bold>🎒 我的上架管理</bold></aqua>"
+    name: "<aqua><bold>[清單] 我的上架管理</bold></aqua>"
     lore:
       - "<gray>點擊查看與管理自己發布的所有頭顱。</gray>"
   market-all-btn:
-    name: "<gold><bold>🌍 返回全部市集</bold></gold>"
+    name: "<gold><bold>[市集] 返回全部市集</bold></gold>"
     lore:
       - "<gray>點擊返回全服社群頭顱大廳。</gray>"
 
   # 頭顱上架設定 GUI
   publish-title: "<gradient:#FFAA00:#FF5555><bold>頭顱上架設定</bold></gradient>"
   publish-mode:
-    name: "<gold><bold>📦 支付模式: <mode></bold></gold>"
+    name: "<gold><bold>模式: <mode></bold></gold>"
     lore:
       - "<gray>選擇買家購買你的頭顱時需支付的貨幣/物品。</gray>"
       - "<gray>目前模式: <white><mode></white></gray>"
       - ""
       - "<green>▶ 點擊循環切換支付模式</green>"
   publish-price:
-    name: "<gold><bold>💰 設定售價: <price></bold></gold>"
+    name: "<gold><bold>售價: <price></bold></gold>"
     lore:
       - "<gray>目前設定售價: <aqua><price></aqua></gray>"
       - ""
       - "<green>▶ 左鍵點擊: 開啟告示牌輸入自訂金額</green>"
       - "<yellow>▶ 右鍵點擊: +1 / Shift+右鍵: +10 / Shift+左鍵: -1</yellow>"
   publish-title-btn:
-    name: "<aqua><bold>🏷️ 自訂頭顱名稱</bold></aqua>"
+    name: "<aqua><bold>自訂頭顱名稱</bold></aqua>"
     lore:
       - "<gray>目前名稱: <white><title></white></gray>"
       - ""
