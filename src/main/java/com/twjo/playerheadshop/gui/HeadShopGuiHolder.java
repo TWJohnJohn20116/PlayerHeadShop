@@ -15,6 +15,7 @@ public class HeadShopGuiHolder implements InventoryHolder {
 
     private final Player player;
     private final Map<Integer, ShopOption> options;
+    private int marketSlot = -1;
     private Inventory inventory;
 
     public HeadShopGuiHolder(Player player, Map<Integer, ShopOption> options) {
@@ -37,5 +38,13 @@ public class HeadShopGuiHolder implements InventoryHolder {
 
     public ShopOption getOption(int slot) {
         return options.get(slot);
+    }
+
+    public int getMarketSlot() {
+        return marketSlot;
+    }
+
+    public void setMarketSlot(int marketSlot) {
+        this.marketSlot = marketSlot;
     }
 }

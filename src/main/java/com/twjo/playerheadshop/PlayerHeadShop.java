@@ -53,7 +53,7 @@ public final class PlayerHeadShop extends JavaPlugin {
         this.marketGui = new MarketGui(this, this.databaseManager, this.languageManager);
 
         // 註冊事件監聽器 (商店選單、放置兌換、收益金庫與社群市集)
-        getServer().getPluginManager().registerEvents(new HeadShopListener(this.headShopService, this.headShopGui), this);
+        getServer().getPluginManager().registerEvents(new HeadShopListener(this, this.headShopService, this.headShopGui), this);
         getServer().getPluginManager().registerEvents(new TreasuryListener(this, this.languageManager, this.treasuryManager, this.treasuryGui), this);
         getServer().getPluginManager().registerEvents(new MarketListener(this, this.marketManager, this.marketGui, this.pluginConfig), this);
 

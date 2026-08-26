@@ -25,6 +25,8 @@ import java.util.List;
  */
 public class MarketGui {
 
+    public static final int BACK_TO_SHOP_SLOT = 46;
+
     private final PlayerHeadShop plugin;
     private final DatabaseManager databaseManager;
     private final LanguageManager lang;
@@ -76,7 +78,7 @@ public class MarketGui {
 
         // 2. 底排裝飾填充
         ItemStack filler = createFillerItem();
-        int[] fillers = new int[]{46, 47, 51, 52};
+        int[] fillers = new int[]{47, 51, 52};
         for (int s : fillers) {
             inv.setItem(s, filler);
         }
@@ -88,16 +90,19 @@ public class MarketGui {
             inv.setItem(MarketGuiHolder.PREV_SLOT, filler);
         }
 
-        // 4. ➕ 上傳我的頭顱 (Slot 48)
+        // 4. 返回個人商店 (Slot 46)
+        inv.setItem(BACK_TO_SHOP_SLOT, createBackToShopButton(player));
+
+        // 5. ➕ 上傳我的頭顱 (Slot 48)
         inv.setItem(MarketGuiHolder.SHARE_SLOT, createShareButton(player));
 
-        // 5. 🎒 切換全部/我的上架 (Slot 49)
+        // 6. 🎒 切換全部/我的上架 (Slot 49)
         inv.setItem(MarketGuiHolder.MY_LISTINGS_SLOT, createToggleMyListingsButton(player, myListingsOnly));
 
-        // 6. 🔄 重新整理 (Slot 50)
+        // 7. 🔄 重新整理 (Slot 50)
         inv.setItem(MarketGuiHolder.REFRESH_SLOT, createRefreshButton(player));
 
-        // 7. 下一頁 (Slot 53)
+        // 8. 下一頁 (Slot 53)
         if (page < maxPage && !myListingsOnly) {
             inv.setItem(MarketGuiHolder.NEXT_SLOT, createNavigationButton(player, "gui.market-next", Material.ARROW));
         } else {
@@ -186,6 +191,20 @@ public class MarketGui {
         return item;
     }
 
+    private ItemStack createBackToShopButton(Player player) {
+        ItemStack item = new ItemStack(Material.CHEST, 1);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.displayName(lang.getComponent(player, "gui.market-back-to-shop.name"));
+            List<String> raw = lang.getRawList(player, "gui.market-back-to-shop.lore");
+            List<Component> lore = new ArrayList<>();
+            for (String l : raw) lore.add(miniMessage.deserialize(l));
+            meta.lore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
     private ItemStack createShareButton(Player player) {
         ItemStack item = new ItemStack(Material.NETHER_STAR, 1);
         ItemMeta meta = item.getItemMeta();
@@ -201,7 +220,7 @@ public class MarketGui {
     }
 
     private ItemStack createToggleMyListingsButton(Player player, boolean currentlyMyListings) {
-        ItemStack item = new ItemStack(Material.CHEST, 1);
+        ItemStack item = new ItemStack(Material.ENDER_CHEST, 1);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             String key = currentlyMyListings ? "gui.market-all-btn" : "gui.market-my-btn";

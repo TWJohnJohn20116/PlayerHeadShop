@@ -64,7 +64,13 @@ public class MarketListener implements Listener {
                 if (slot == MarketGuiHolder.PREV_SLOT && holder.getPage() > 1) {
                     marketGui.open(player, holder.getPage() - 1, holder.isMyListingsOnly());
                 }
-                // 3. ➕ 一鍵上架我的頭顱 (Slot 48)
+                // 3. ◀ 返回個人頭顱商店 (Slot 46)
+                else if (slot == MarketGui.BACK_TO_SHOP_SLOT) {
+                    if (plugin.getHeadShopGui() != null) {
+                        plugin.getHeadShopGui().open(player);
+                    }
+                }
+                // 4. ➕ 一鍵上架我的頭顱 (Slot 48)
                 else if (slot == MarketGuiHolder.SHARE_SLOT) {
                     marketManager.publishHead(
                             player,
@@ -79,15 +85,15 @@ public class MarketListener implements Listener {
                         }
                     });
                 }
-                // 4. 🎒 切換 全部/我的上架 (Slot 49)
+                // 5. 🎒 切換 全部/我的上架 (Slot 49)
                 else if (slot == MarketGuiHolder.MY_LISTINGS_SLOT) {
                     marketGui.open(player, 1, !holder.isMyListingsOnly());
                 }
-                // 5. 🔄 重新整理 (Slot 50)
+                // 6. 🔄 重新整理 (Slot 50)
                 else if (slot == MarketGuiHolder.REFRESH_SLOT) {
                     marketGui.open(player, holder.getPage(), holder.isMyListingsOnly());
                 }
-                // 6. 下一頁 (Slot 53)
+                // 7. 下一頁 (Slot 53)
                 else if (slot == MarketGuiHolder.NEXT_SLOT) {
                     marketGui.open(player, holder.getPage() + 1, holder.isMyListingsOnly());
                 }

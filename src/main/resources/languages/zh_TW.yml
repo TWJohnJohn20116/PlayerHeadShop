@@ -99,6 +99,15 @@ gui:
     lore:
       - "<gray>返回主選單，未兌換的物品將自動歸還至背包。</gray>"
 
+  # 商店主選單中的市集入口按鈕
+  market-entrance:
+    name: "<gradient:#FFAA00:#FF5555><bold>🌍 前往社群頭顱市集</bold></gradient>"
+    lore:
+      - "<gray>瀏覽全服其他玩家上架分享的自訂頭顱！</gray>"
+      - "<gray>你也可以隨時上架自己的頭顱供大家購買。</gray>"
+      - ""
+      - "<green>▶ 點擊開啟社群市集！</green>"
+
   # 收益金庫 GUI
   treasury-title: "<gradient:#FFAA00:#FF5555><bold>收益金庫管理</bold></gradient>"
   treasury-vault:
@@ -137,6 +146,10 @@ gui:
   market-unlist-hint: "<red>▶ 點擊將此頭顱下架</red>"
   market-prev: "<yellow><bold>◀ 上一頁</bold></yellow>"
   market-next: "<yellow><bold>下一頁 ▶</bold></yellow>"
+  market-back-to-shop:
+    name: "<yellow><bold>◀ 返回個人頭顱商店</bold></yellow>"
+    lore:
+      - "<gray>點擊返回個人皮膚頭顱購買選單。</gray>"
   market-share-btn:
     name: "<green><bold>➕ 一鍵分享/上架我的頭顱</bold></green>"
     lore:

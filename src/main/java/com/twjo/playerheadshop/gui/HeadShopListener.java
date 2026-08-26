@@ -1,5 +1,6 @@
 package com.twjo.playerheadshop.gui;
 
+import com.twjo.playerheadshop.PlayerHeadShop;
 import com.twjo.playerheadshop.config.ShopOption;
 import com.twjo.playerheadshop.service.HeadShopService;
 import org.bukkit.entity.Player;
@@ -14,14 +15,16 @@ import org.bukkit.inventory.ItemStack;
 import java.util.HashMap;
 
 /**
- * 監聽 GUI 點擊、拖曳與關閉事件，支援物品放置兌換、Vault 貨幣與經驗等級/點數支付
+ * 監聽 GUI 點擊、拖曳與關閉事件，支援物品放置兌換、Vault 貨幣、經驗支付與社群市集入口
  */
 public class HeadShopListener implements Listener {
 
+    private final PlayerHeadShop plugin;
     private final HeadShopService headShopService;
     private final HeadShopGui headShopGui;
 
-    public HeadShopListener(HeadShopService headShopService, HeadShopGui headShopGui) {
+    public HeadShopListener(PlayerHeadShop plugin, HeadShopService headShopService, HeadShopGui headShopGui) {
+        this.plugin = plugin;
         this.headShopService = headShopService;
         this.headShopGui = headShopGui;
     }
@@ -40,6 +43,16 @@ public class HeadShopListener implements Listener {
 
             if (event.getClickedInventory() != null && event.getClickedInventory().getHolder() instanceof HeadShopGuiHolder) {
                 int slot = event.getSlot();
+
+                // 點擊社群市集入口按鈕
+                if (slot == holder.getMarketSlot()) {
+                    if (plugin.getMarketGui() != null) {
+                        plugin.getMarketGui().open(player, 1, false);
+                    }
+                    return;
+                }
+
+                // 點擊方案商品
                 ShopOption option = holder.getOption(slot);
                 if (option != null) {
                     if (option.isDirectPurchase()) {

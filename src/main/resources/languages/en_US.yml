@@ -99,6 +99,15 @@ gui:
     lore:
       - "<gray>Return to menu. Leftover items will be returned.</gray>"
 
+  # Main Menu Market Entrance Button
+  market-entrance:
+    name: "<gradient:#FFAA00:#FF5555><bold>🌍 Community Head Market</bold></gradient>"
+    lore:
+      - "<gray>Browse heads published by players across the server!</gray>"
+      - "<gray>You can also share and list your own head.</gray>"
+      - ""
+      - "<green>▶ Click to open Head Market!</green>"
+
   # Treasury GUI
   treasury-title: "<gradient:#FFAA00:#FF5555><bold>Revenue Treasury</bold></gradient>"
   treasury-vault:
@@ -137,6 +146,10 @@ gui:
   market-unlist-hint: "<red>▶ Click to unlist this head</red>"
   market-prev: "<yellow><bold>◀ Previous</bold></yellow>"
   market-next: "<yellow><bold>Next ▶</bold></yellow>"
+  market-back-to-shop:
+    name: "<yellow><bold>◀ Back to Shop</bold></yellow>"
+    lore:
+      - "<gray>Click to return to personal head shop.</gray>"
   market-share-btn:
     name: "<green><bold>➕ Share / List My Head</bold></green>"
     lore:

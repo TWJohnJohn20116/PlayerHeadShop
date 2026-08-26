@@ -69,8 +69,37 @@ public class HeadShopGui {
             }
         }
 
-        // 3. 開啟介面
+        // 3. 若啟用社群市集，在介面右下角放置市集入口按鈕
+        if (config.isMarketEnabled()) {
+            int marketSlot = size - 1;
+            while (marketSlot >= 0 && options.containsKey(marketSlot)) {
+                marketSlot--;
+            }
+            if (marketSlot >= 0) {
+                inventory.setItem(marketSlot, createMarketEntranceButton(player));
+                holder.setMarketSlot(marketSlot);
+            }
+        }
+
+        // 4. 開啟介面
         player.openInventory(inventory);
+    }
+
+    /**
+     * 建立社群市集入口按鈕
+     */
+    private ItemStack createMarketEntranceButton(Player player) {
+        ItemStack item = new ItemStack(Material.ENDER_CHEST, 1);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.displayName(lang.getComponent(player, "gui.market-entrance.name"));
+            List<String> raw = lang.getRawList(player, "gui.market-entrance.lore");
+            List<Component> lore = new ArrayList<>();
+            for (String l : raw) lore.add(miniMessage.deserialize(l));
+            meta.lore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
     }
 
     /**
