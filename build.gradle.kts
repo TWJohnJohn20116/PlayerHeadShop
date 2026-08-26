@@ -3,8 +3,8 @@ plugins {
 }
 
 group = "com.twjo"
-version = "2.0.0-beta-2"
-description = "A lightweight Paper/Folia Minecraft plugin to purchase player heads with custom items, Vault economy, and GUI."
+version = "2.0.0"
+description = "A modern Paper/Folia Minecraft plugin to purchase player heads, community head market, treasury vault, Vault economy, and GUI."
 
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(21))
