@@ -41,6 +41,15 @@ messages:
   treasury-logs-empty: "<red>目前查无任何金库提领审计记录！</red>"
   treasury-logs-invalid-page: "<red>无效的页码！有效页码为 1 ~ <max_page>。</red>"
 
+  # 社区市集消息
+  market-disabled: "<red>社区头颅市集功能未启用 (market.enabled: false)。</red>"
+  market-max-listings: "<red>你已达到个人最大上架数量上限 (<max> 个)！</red>"
+  market-publish-success: "<green>成功上架头颅 <gold><title></gold> (ID: <id>) 至社区市集！</green>"
+  market-publish-failed: "<red>上架头颅失败，请稍后再试。</red>"
+  market-unlist-success: "<green>成功下架头颅 (ID: <id>)！</green>"
+  market-unlist-failed: "<red>下架头颅失败，查无此项目或你非该商品拥有者。</red>"
+  market-buy-success: "<green>成功购买了由 <yellow><seller></yellow> 分享的 <gold><head_amount></gold> 头颅！</green>"
+
 gui:
   main-title: "<gradient:#FFAA00:#FF5555><bold>自定义头颅商店</bold></gradient>"
   deposit-title: "<gradient:#FFAA00:#FF5555><bold>放置物品兑换</bold></gradient> <gray>-</gray> <yellow><head_amount></yellow>"
@@ -114,6 +123,32 @@ gui:
     name: "<yellow><bold>🔄 重新整理金库</bold></yellow>"
     lore:
       - "<gray>点击重新载入最新的金库物品与资产。</gray>"
+
+  # 社区市集 GUI
+  market-title: "<gradient:#FFAA00:#FF5555><bold>社区头颅市集</bold></gradient> <gray>(第 <page> 页)</gray>"
+  market-my-title: "<gradient:#FFAA00:#FF5555><bold>我的上架头颅管理</bold></gradient>"
+  market-head-lore:
+    - "<gray>上架者: <yellow><seller></yellow></gray>"
+    - "<gray>上架时间: <white><date></white></gray>"
+    - "<white>获得: <gold><head_amount> 头颅</gold></white>"
+    - "<white>售价: <aqua><price></aqua></white>"
+    - "<gray>累积销量: <white><sales></white></gray>"
+  market-buy-hint: "<green>▶ 点击立即购买！</green>"
+  market-unlist-hint: "<red>▶ 点击将此头颅下架</red>"
+  market-prev: "<yellow><bold>◀ 上一页</bold></yellow>"
+  market-next: "<yellow><bold>下一页 ▶</bold></yellow>"
+  market-share-btn:
+    name: "<green><bold>➕ 一键分享/上架我的头颅</bold></green>"
+    lore:
+      - "<gray>点击将自己当前的皮肤头颅上架至市集！</gray>"
+  market-my-btn:
+    name: "<aqua><bold>🎒 我的上架管理</bold></aqua>"
+    lore:
+      - "<gray>点击查看与管理自己发布的所有头颅。</gray>"
+  market-all-btn:
+    name: "<gold><bold>🌍 返回全部市集</bold></gold>"
+    lore:
+      - "<gray>点击返回全服社区头颅大厅。</gray>"
 
 units:
   item: "<amount> 个"

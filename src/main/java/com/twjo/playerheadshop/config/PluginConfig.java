@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.logging.Level;
 
 /**
- * 管理 PlayerHeadShop 的主設定檔讀取、收益金庫開關與 GUI 智慧自動排版
+ * 管理 PlayerHeadShop 的主設定檔讀取、收益金庫、社群市集與 GUI 智慧自動排版
  */
 public class PluginConfig {
 
@@ -26,6 +26,14 @@ public class PluginConfig {
     private volatile boolean poolCollectItems = true;
     private volatile boolean poolCollectVault = true;
     private volatile boolean poolCollectExp = true;
+
+    // 社群市集設定
+    private volatile boolean marketEnabled = true;
+    private volatile int marketMaxListings = 5;
+    private volatile ShopOption.CostType marketDefaultCostType = ShopOption.CostType.ITEM;
+    private volatile Material marketDefaultCostItem = Material.DIAMOND;
+    private volatile double marketDefaultCostAmount = 1.0;
+    private volatile int marketDefaultHeadAmount = 1;
 
     private volatile Map<Integer, ShopOption> options = Collections.emptyMap();
 
@@ -60,7 +68,18 @@ public class PluginConfig {
         this.poolCollectVault = config.getBoolean("pool.collect-vault", true);
         this.poolCollectExp = config.getBoolean("pool.collect-exp", true);
 
-        // 4. 讀取 options 兌換方案清單
+        // 4. 讀取社群市集設定
+        this.marketEnabled = config.getBoolean("market.enabled", true);
+        this.marketMaxListings = config.getInt("market.max-listings-per-player", 5);
+        String defCostTypeStr = config.getString("market.default-price.cost-type", "ITEM").toUpperCase();
+        String defCostItemStr = config.getString("market.default-price.cost-item", "DIAMOND").toUpperCase();
+        this.marketDefaultCostType = resolveCostType(defCostTypeStr, defCostItemStr);
+        Material mDefMat = Material.matchMaterial(defCostItemStr);
+        this.marketDefaultCostItem = (mDefMat != null && !mDefMat.isAir()) ? mDefMat : Material.DIAMOND;
+        this.marketDefaultCostAmount = config.getDouble("market.default-price.cost-amount", 1.0);
+        this.marketDefaultHeadAmount = config.getInt("market.default-price.head-amount", 1);
+
+        // 5. 讀取 options 兌換方案清單
         int maxSlots = this.guiRows * 9;
         List<ShopOption> manualOptions = new ArrayList<>();
         List<ShopOption> autoOptions = new ArrayList<>();
@@ -101,7 +120,7 @@ public class PluginConfig {
             }
         }
 
-        // 5. 計算自動排版位置
+        // 6. 計算自動排版位置
         Map<Integer, ShopOption> finalOptions = calculateLayout(manualOptions, autoOptions, maxSlots);
 
         // 若無任何方案，建立預設方案
@@ -301,6 +320,30 @@ public class PluginConfig {
 
     public boolean isPoolCollectExp() {
         return poolCollectExp;
+    }
+
+    public boolean isMarketEnabled() {
+        return marketEnabled;
+    }
+
+    public int getMarketMaxListings() {
+        return marketMaxListings;
+    }
+
+    public ShopOption.CostType getMarketDefaultCostType() {
+        return marketDefaultCostType;
+    }
+
+    public Material getMarketDefaultCostItem() {
+        return marketDefaultCostItem;
+    }
+
+    public double getMarketDefaultCostAmount() {
+        return marketDefaultCostAmount;
+    }
+
+    public int getMarketDefaultHeadAmount() {
+        return marketDefaultHeadAmount;
     }
 
     public Map<Integer, ShopOption> getOptions() {

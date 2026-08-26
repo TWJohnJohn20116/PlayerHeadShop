@@ -1,6 +1,8 @@
 package com.twjo.playerheadshop.database;
 
 import com.twjo.playerheadshop.PlayerHeadShop;
+import com.twjo.playerheadshop.config.ShopOption;
+import com.twjo.playerheadshop.market.SharedHeadRecord;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
@@ -16,7 +18,7 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
 /**
- * 管理 SQLite 資料庫連線、交易記錄、收益金庫持久化與管理員提領稽核日誌
+ * 管理 SQLite 資料庫連線、交易記錄、收益金庫持久化、管理員提領稽核日誌與社群頭顱市集
  */
 public class DatabaseManager {
 
@@ -98,6 +100,26 @@ public class DatabaseManager {
                         );
                     """);
                     stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_treasury_time ON treasury_logs(timestamp DESC);");
+
+                    // 5. 社群頭顱分享與市集表
+                    stmt.executeUpdate("""
+                        CREATE TABLE IF NOT EXISTS shared_heads (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            seller_uuid TEXT NOT NULL,
+                            seller_name TEXT NOT NULL,
+                            head_name TEXT NOT NULL,
+                            skin_owner TEXT NOT NULL,
+                            cost_type TEXT NOT NULL,
+                            cost_item TEXT NOT NULL,
+                            cost_amount REAL NOT NULL,
+                            head_amount INTEGER NOT NULL,
+                            created_at INTEGER NOT NULL,
+                            sales_count INTEGER DEFAULT 0,
+                            is_active INTEGER DEFAULT 1
+                        );
+                    """);
+                    stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_shared_active ON shared_heads(is_active, created_at DESC);");
+                    stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_shared_seller ON shared_heads(seller_uuid, is_active);");
                 }
             } catch (SQLException e) {
                 plugin.getLogger().log(Level.SEVERE, "無法初始化 SQLite 資料庫", e);
@@ -367,6 +389,184 @@ public class DatabaseManager {
                 plugin.getLogger().log(Level.WARNING, "分頁查詢金庫稽核日誌失敗", e);
             }
             return list;
+        }, executor);
+    }
+
+    // ==========================================
+    // 社群頭顱分享與市集 (Shared Heads / Market)
+    // ==========================================
+
+    public CompletableFuture<Long> addSharedHead(UUID sellerUuid, String sellerName, String headName, String skinOwner,
+                                                 String costType, String costItem, double costAmount, int headAmount) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                if (connection == null || connection.isClosed()) return -1L;
+                String sql = "INSERT INTO shared_heads (seller_uuid, seller_name, head_name, skin_owner, cost_type, cost_item, cost_amount, head_amount, created_at, sales_count, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1)";
+                try (PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                    pstmt.setString(1, sellerUuid.toString());
+                    pstmt.setString(2, sellerName);
+                    pstmt.setString(3, headName);
+                    pstmt.setString(4, skinOwner);
+                    pstmt.setString(5, costType);
+                    pstmt.setString(6, costItem);
+                    pstmt.setDouble(7, costAmount);
+                    pstmt.setInt(8, headAmount);
+                    pstmt.setLong(9, System.currentTimeMillis());
+                    pstmt.executeUpdate();
+
+                    try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                        if (rs.next()) return rs.getLong(1);
+                    }
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "新增社群分享頭顱失敗: " + sellerName, e);
+            }
+            return -1L;
+        }, executor);
+    }
+
+    public CompletableFuture<Boolean> removeSharedHead(long id, UUID sellerUuid, boolean isAdmin) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                if (connection == null || connection.isClosed()) return false;
+                String sql = isAdmin
+                        ? "UPDATE shared_heads SET is_active = 0 WHERE id = ?"
+                        : "UPDATE shared_heads SET is_active = 0 WHERE id = ? AND seller_uuid = ?";
+                try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                    pstmt.setLong(1, id);
+                    if (!isAdmin) {
+                        pstmt.setString(2, sellerUuid.toString());
+                    }
+                    int rows = pstmt.executeUpdate();
+                    return rows > 0;
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "下架社群頭顱失敗: " + id, e);
+            }
+            return false;
+        }, executor);
+    }
+
+    public CompletableFuture<Integer> getTotalActiveSharedHeads() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                if (connection == null || connection.isClosed()) return 0;
+                String sql = "SELECT COUNT(*) FROM shared_heads WHERE is_active = 1";
+                try (Statement stmt = connection.createStatement();
+                     ResultSet rs = stmt.executeQuery(sql)) {
+                    if (rs.next()) return rs.getInt(1);
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "查詢市集頭顱總數失敗", e);
+            }
+            return 0;
+        }, executor);
+    }
+
+    public CompletableFuture<Integer> getPlayerActiveListingsCount(UUID sellerUuid) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                if (connection == null || connection.isClosed()) return 0;
+                String sql = "SELECT COUNT(*) FROM shared_heads WHERE seller_uuid = ? AND is_active = 1";
+                try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                    pstmt.setString(1, sellerUuid.toString());
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        if (rs.next()) return rs.getInt(1);
+                    }
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "查詢玩家上架數量失敗", e);
+            }
+            return 0;
+        }, executor);
+    }
+
+    public CompletableFuture<List<SharedHeadRecord>> getActiveSharedHeads(int page, int pageSize) {
+        return CompletableFuture.supplyAsync(() -> {
+            List<SharedHeadRecord> list = new ArrayList<>();
+            try {
+                if (connection == null || connection.isClosed()) return list;
+                int offset = Math.max(0, (page - 1) * pageSize);
+                String sql = "SELECT id, seller_uuid, seller_name, head_name, skin_owner, cost_type, cost_item, cost_amount, head_amount, created_at, sales_count, is_active FROM shared_heads WHERE is_active = 1 ORDER BY created_at DESC LIMIT ? OFFSET ?";
+
+                try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                    pstmt.setInt(1, pageSize);
+                    pstmt.setInt(2, offset);
+
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        while (rs.next()) {
+                            long id = rs.getLong("id");
+                            UUID sellerUuid = UUID.fromString(rs.getString("seller_uuid"));
+                            String sellerName = rs.getString("seller_name");
+                            String headName = rs.getString("head_name");
+                            String skinOwner = rs.getString("skin_owner");
+                            String costTypeStr = rs.getString("cost_type");
+                            ShopOption.CostType costType = ShopOption.CostType.valueOf(costTypeStr);
+                            String costItem = rs.getString("cost_item");
+                            double costAmount = rs.getDouble("cost_amount");
+                            int headAmount = rs.getInt("head_amount");
+                            long createdAt = rs.getLong("created_at");
+                            int salesCount = rs.getInt("sales_count");
+                            boolean isActive = rs.getInt("is_active") == 1;
+
+                            list.add(new SharedHeadRecord(id, sellerUuid, sellerName, headName, skinOwner, costType, costItem, costAmount, headAmount, createdAt, salesCount, isActive));
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "分頁查詢市集頭顱失敗", e);
+            }
+            return list;
+        }, executor);
+    }
+
+    public CompletableFuture<List<SharedHeadRecord>> getPlayerSharedHeads(UUID sellerUuid) {
+        return CompletableFuture.supplyAsync(() -> {
+            List<SharedHeadRecord> list = new ArrayList<>();
+            try {
+                if (connection == null || connection.isClosed()) return list;
+                String sql = "SELECT id, seller_uuid, seller_name, head_name, skin_owner, cost_type, cost_item, cost_amount, head_amount, created_at, sales_count, is_active FROM shared_heads WHERE seller_uuid = ? AND is_active = 1 ORDER BY created_at DESC";
+
+                try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                    pstmt.setString(1, sellerUuid.toString());
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        while (rs.next()) {
+                            long id = rs.getLong("id");
+                            String sellerName = rs.getString("seller_name");
+                            String headName = rs.getString("head_name");
+                            String skinOwner = rs.getString("skin_owner");
+                            String costTypeStr = rs.getString("cost_type");
+                            ShopOption.CostType costType = ShopOption.CostType.valueOf(costTypeStr);
+                            String costItem = rs.getString("cost_item");
+                            double costAmount = rs.getDouble("cost_amount");
+                            int headAmount = rs.getInt("head_amount");
+                            long createdAt = rs.getLong("created_at");
+                            int salesCount = rs.getInt("sales_count");
+                            boolean isActive = rs.getInt("is_active") == 1;
+
+                            list.add(new SharedHeadRecord(id, sellerUuid, sellerName, headName, skinOwner, costType, costItem, costAmount, headAmount, createdAt, salesCount, isActive));
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "查詢玩家上架頭顱失敗", e);
+            }
+            return list;
+        }, executor);
+    }
+
+    public CompletableFuture<Void> incrementSharedHeadSales(long id) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                if (connection == null || connection.isClosed()) return;
+                String sql = "UPDATE shared_heads SET sales_count = sales_count + 1 WHERE id = ?";
+                try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                    pstmt.setLong(1, id);
+                    pstmt.executeUpdate();
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "更新銷量失敗: " + id, e);
+            }
         }, executor);
     }
 

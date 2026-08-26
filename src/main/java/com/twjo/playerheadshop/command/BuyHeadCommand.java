@@ -2,16 +2,20 @@ package com.twjo.playerheadshop.command;
 
 import com.twjo.playerheadshop.PlayerHeadShop;
 import com.twjo.playerheadshop.config.PluginConfig;
+import com.twjo.playerheadshop.config.ShopOption;
 import com.twjo.playerheadshop.database.DatabaseManager;
 import com.twjo.playerheadshop.database.TradeRecord;
 import com.twjo.playerheadshop.database.TreasuryLogRecord;
 import com.twjo.playerheadshop.gui.HeadShopGui;
 import com.twjo.playerheadshop.lang.LanguageManager;
+import com.twjo.playerheadshop.market.MarketGui;
+import com.twjo.playerheadshop.market.MarketManager;
 import com.twjo.playerheadshop.treasury.TreasuryGui;
 import com.twjo.playerheadshop.treasury.TreasuryManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -24,7 +28,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 處理 /buyhead 指令、管理員熱重載、交易歷史查詢、收益金庫與提領稽核日誌
+ * 處理 /buyhead 指令、管理員熱重載、交易歷史、收益金庫、社群市集與頭顱分享
  */
 public class BuyHeadCommand extends Command {
 
@@ -39,10 +43,13 @@ public class BuyHeadCommand extends Command {
     private final DatabaseManager databaseManager;
     private final TreasuryManager treasuryManager;
     private final TreasuryGui treasuryGui;
+    private final MarketManager marketManager;
+    private final MarketGui marketGui;
 
     public BuyHeadCommand(PlayerHeadShop plugin, PluginConfig config, LanguageManager lang, HeadShopGui gui,
-                          DatabaseManager databaseManager, TreasuryManager treasuryManager, TreasuryGui treasuryGui) {
-        super("buyhead", "購買自己的玩家頭顱", "/buyhead [reload|history|pool]", List.of("playerheadshop", "headshop"));
+                          DatabaseManager databaseManager, TreasuryManager treasuryManager, TreasuryGui treasuryGui,
+                          MarketManager marketManager, MarketGui marketGui) {
+        super("buyhead", "購買與分享玩家頭顱", "/buyhead [market|share|history|pool|reload]", List.of("playerheadshop", "headshop"));
         this.plugin = plugin;
         this.config = config;
         this.lang = lang;
@@ -50,6 +57,8 @@ public class BuyHeadCommand extends Command {
         this.databaseManager = databaseManager;
         this.treasuryManager = treasuryManager;
         this.treasuryGui = treasuryGui;
+        this.marketManager = marketManager;
+        this.marketGui = marketGui;
         setPermission(PERMISSION_USE);
     }
 
@@ -67,7 +76,60 @@ public class BuyHeadCommand extends Command {
             return true;
         }
 
-        // 2. 處理兌換歷史查詢子指令 /buyhead history [玩家] [頁碼]
+        // 2. 處理社群市集子指令 /buyhead market [頁碼]
+        if (args.length > 0 && (args[0].equalsIgnoreCase("market") || args[0].equalsIgnoreCase("shared") || args[0].equalsIgnoreCase("community"))) {
+            if (!(sender instanceof Player player)) {
+                lang.sendMessage(sender, "player-only");
+                return true;
+            }
+            if (!config.isMarketEnabled()) {
+                lang.sendMessage(player, "market-disabled");
+                return true;
+            }
+            int page = 1;
+            if (args.length >= 2) {
+                try {
+                    page = Integer.parseInt(args[1]);
+                } catch (NumberFormatException ignored) {}
+            }
+            marketGui.open(player, page, false);
+            return true;
+        }
+
+        // 3. 處理分享上架子指令 /buyhead share [價格] [貨幣類型]
+        if (args.length > 0 && (args[0].equalsIgnoreCase("share") || args[0].equalsIgnoreCase("publish") || args[0].equalsIgnoreCase("upload"))) {
+            if (!(sender instanceof Player player)) {
+                lang.sendMessage(sender, "player-only");
+                return true;
+            }
+            if (!config.isMarketEnabled()) {
+                lang.sendMessage(player, "market-disabled");
+                return true;
+            }
+            handleShareCommand(player, args);
+            return true;
+        }
+
+        // 4. 處理下架子指令 /buyhead unshare <ID>
+        if (args.length > 0 && (args[0].equalsIgnoreCase("unshare") || args[0].equalsIgnoreCase("unlist") || args[0].equalsIgnoreCase("remove"))) {
+            if (!(sender instanceof Player player)) {
+                lang.sendMessage(sender, "player-only");
+                return true;
+            }
+            if (args.length < 2) {
+                sender.sendMessage("§c用法: /buyhead unshare <ID>");
+                return true;
+            }
+            try {
+                long id = Long.parseLong(args[1]);
+                marketManager.unlistHead(player, id, player.hasPermission(PERMISSION_ADMIN));
+            } catch (NumberFormatException e) {
+                sender.sendMessage("§c無效的頭顱 ID！");
+            }
+            return true;
+        }
+
+        // 5. 處理兌換歷史查詢子指令 /buyhead history [玩家] [頁碼]
         if (args.length > 0 && (args[0].equalsIgnoreCase("history") || args[0].equalsIgnoreCase("logs") || args[0].equalsIgnoreCase("log"))) {
             if (!sender.hasPermission(PERMISSION_ADMIN)) {
                 lang.sendMessage(sender, "no-permission");
@@ -77,7 +139,7 @@ public class BuyHeadCommand extends Command {
             return true;
         }
 
-        // 3. 處理收益金庫子指令 /buyhead pool [...]
+        // 6. 處理收益金庫子指令 /buyhead pool [...]
         if (args.length > 0 && (args[0].equalsIgnoreCase("pool") || args[0].equalsIgnoreCase("treasury") || args[0].equalsIgnoreCase("bank"))) {
             if (!sender.hasPermission(PERMISSION_ADMIN)) {
                 lang.sendMessage(sender, "no-permission");
@@ -87,7 +149,7 @@ public class BuyHeadCommand extends Command {
             return true;
         }
 
-        // 4. 一般玩家開啟購買選單
+        // 7. 一般玩家開啟購買選單
         if (!(sender instanceof Player player)) {
             lang.sendMessage(sender, "player-only");
             return true;
@@ -102,16 +164,48 @@ public class BuyHeadCommand extends Command {
         return true;
     }
 
-    /**
-     * 處理 /buyhead pool 相關指令
-     */
+    private void handleShareCommand(Player player, String[] args) {
+        ShopOption.CostType costType = config.getMarketDefaultCostType();
+        String costItem = config.getMarketDefaultCostItem().name();
+        double costAmount = config.getMarketDefaultCostAmount();
+        int headAmount = config.getMarketDefaultHeadAmount();
+
+        // 解析自訂參數 /buyhead share [金額/數量] [類型]
+        if (args.length >= 2) {
+            try {
+                costAmount = Double.parseDouble(args[1]);
+            } catch (NumberFormatException ignored) {}
+        }
+
+        if (args.length >= 3) {
+            String typeStr = args[2].toUpperCase();
+            if (typeStr.equals("VAULT") || typeStr.equals("MONEY")) {
+                costType = ShopOption.CostType.VAULT;
+                costItem = "VAULT";
+            } else if (typeStr.equals("EXP_LEVEL") || typeStr.equals("LEVEL") || typeStr.equals("LVL")) {
+                costType = ShopOption.CostType.EXP_LEVEL;
+                costItem = "EXP_LEVEL";
+            } else if (typeStr.equals("EXP_POINTS") || typeStr.equals("EXP") || typeStr.equals("XP")) {
+                costType = ShopOption.CostType.EXP_POINTS;
+                costItem = "EXP_POINTS";
+            } else {
+                Material mat = Material.matchMaterial(typeStr);
+                if (mat != null && !mat.isAir()) {
+                    costType = ShopOption.CostType.ITEM;
+                    costItem = mat.name();
+                }
+            }
+        }
+
+        marketManager.publishHead(player, player.getName() + " 的頭顱", costType, costItem, costAmount, headAmount);
+    }
+
     private void handlePoolCommand(CommandSender sender, String[] args) {
         if (!config.isPoolEnabled()) {
             lang.sendMessage(sender, "treasury-disabled");
             return;
         }
 
-        // /buyhead pool (無參數)：開啟金庫 GUI
         if (args.length == 1) {
             if (!(sender instanceof Player player)) {
                 sendPoolInfo(sender);
@@ -123,13 +217,11 @@ public class BuyHeadCommand extends Command {
 
         String sub = args[1].toLowerCase();
 
-        // /buyhead pool info / balance
         if (sub.equals("info") || sub.equals("balance") || sub.equals("status")) {
             sendPoolInfo(sender);
             return;
         }
 
-        // /buyhead pool logs [page]
         if (sub.equals("logs") || sub.equals("history") || sub.equals("audit")) {
             int page = 1;
             if (args.length >= 3) {
@@ -141,7 +233,6 @@ public class BuyHeadCommand extends Command {
             return;
         }
 
-        // /buyhead pool withdraw <money|exp|all>
         if (sub.equals("withdraw") || sub.equals("take")) {
             if (!(sender instanceof Player player)) {
                 lang.sendMessage(sender, "player-only");
@@ -160,7 +251,6 @@ public class BuyHeadCommand extends Command {
             return;
         }
 
-        // 預設開啟 GUI
         if (sender instanceof Player player) {
             treasuryGui.open(player);
         } else {
@@ -220,9 +310,6 @@ public class BuyHeadCommand extends Command {
         }
     }
 
-    /**
-     * 查詢金庫管理員提領稽核日誌
-     */
     private void handleTreasuryLogsQuery(CommandSender sender, int page) {
         final int targetPage = Math.max(1, page);
 
@@ -269,9 +356,6 @@ public class BuyHeadCommand extends Command {
         }
     }
 
-    /**
-     * 處理非同步頭顱交易歷史記錄查詢
-     */
     private void handleHistoryQuery(CommandSender sender, String[] args) {
         String playerFilter = null;
         int requestedPage = 1;
@@ -361,30 +445,40 @@ public class BuyHeadCommand extends Command {
 
     @Override
     public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, @NotNull String[] args) {
-        if (!sender.hasPermission(PERMISSION_ADMIN)) {
-            return Collections.emptyList();
-        }
-
         if (args.length == 1) {
-            List<String> sub = List.of("reload", "history", "logs", "pool");
-            List<String> list = new ArrayList<>();
-            for (String s : sub) {
+            List<String> list = new ArrayList<>(List.of("market", "share", "unshare"));
+            if (sender.hasPermission(PERMISSION_ADMIN)) {
+                list.add("reload");
+                list.add("history");
+                list.add("logs");
+                list.add("pool");
+            }
+            List<String> res = new ArrayList<>();
+            for (String s : list) {
                 if (s.startsWith(args[0].toLowerCase())) {
-                    list.add(s);
+                    res.add(s);
                 }
             }
-            return list;
+            return res;
         }
 
-        if (args.length == 2 && args[0].equalsIgnoreCase("pool")) {
+        if (args.length == 2 && args[0].equalsIgnoreCase("share")) {
+            return List.of("1", "5", "10", "100");
+        }
+
+        if (args.length == 3 && args[0].equalsIgnoreCase("share")) {
+            return List.of("DIAMOND", "EMERALD", "VAULT", "EXP_LEVEL", "EXP_POINTS");
+        }
+
+        if (args.length == 2 && args[0].equalsIgnoreCase("pool") && sender.hasPermission(PERMISSION_ADMIN)) {
             return List.of("info", "logs", "withdraw");
         }
 
-        if (args.length == 3 && args[0].equalsIgnoreCase("pool") && args[1].equalsIgnoreCase("withdraw")) {
+        if (args.length == 3 && args[0].equalsIgnoreCase("pool") && args[1].equalsIgnoreCase("withdraw") && sender.hasPermission(PERMISSION_ADMIN)) {
             return List.of("money", "exp", "all");
         }
 
-        if (args.length == 2 && (args[0].equalsIgnoreCase("history") || args[0].equalsIgnoreCase("logs") || args[0].equalsIgnoreCase("log"))) {
+        if (args.length == 2 && (args[0].equalsIgnoreCase("history") || args[0].equalsIgnoreCase("logs") || args[0].equalsIgnoreCase("log")) && sender.hasPermission(PERMISSION_ADMIN)) {
             List<String> list = new ArrayList<>();
             for (Player p : Bukkit.getOnlinePlayers()) {
                 if (p.getName().toLowerCase().startsWith(args[1].toLowerCase())) {

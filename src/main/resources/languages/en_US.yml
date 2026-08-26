@@ -41,6 +41,15 @@ messages:
   treasury-logs-empty: "<red>No treasury withdrawal audit records found!</red>"
   treasury-logs-invalid-page: "<red>Invalid page number! Valid range is 1 to <max_page>.</red>"
 
+  # Community Market
+  market-disabled: "<red>Community head market is disabled (market.enabled: false).</red>"
+  market-max-listings: "<red>You have reached your maximum active listings limit (<max>)!</red>"
+  market-publish-success: "<green>Successfully published head <gold><title></gold> (ID: <id>) to market!</green>"
+  market-publish-failed: "<red>Failed to publish head, please try again later.</red>"
+  market-unlist-success: "<green>Successfully unlisted head (ID: <id>)!</green>"
+  market-unlist-failed: "<red>Failed to unlist head, item not found or you are not the owner.</red>"
+  market-buy-success: "<green>Successfully purchased <gold><head_amount></gold> head(s) shared by <yellow><seller></yellow>!</green>"
+
 gui:
   main-title: "<gradient:#FFAA00:#FF5555><bold>Player Head Shop</bold></gradient>"
   deposit-title: "<gradient:#FFAA00:#FF5555><bold>Deposit Items</bold></gradient> <gray>-</gray> <yellow><head_amount></yellow>"
@@ -114,6 +123,32 @@ gui:
     name: "<yellow><bold>🔄 Refresh Treasury</bold></yellow>"
     lore:
       - "<gray>Click to reload latest treasury assets.</gray>"
+
+  # Community Market GUI
+  market-title: "<gradient:#FFAA00:#FF5555><bold>Head Market</bold></gradient> <gray>(Page <page>)</gray>"
+  market-my-title: "<gradient:#FFAA00:#FF5555><bold>My Listed Heads</bold></gradient>"
+  market-head-lore:
+    - "<gray>Seller: <yellow><seller></yellow></gray>"
+    - "<gray>Listed: <white><date></white></gray>"
+    - "<white>Receive: <gold><head_amount> head(s)</gold></white>"
+    - "<white>Price: <aqua><price></aqua></white>"
+    - "<gray>Total Sales: <white><sales></white></gray>"
+  market-buy-hint: "<green>▶ Click to purchase!</green>"
+  market-unlist-hint: "<red>▶ Click to unlist this head</red>"
+  market-prev: "<yellow><bold>◀ Previous</bold></yellow>"
+  market-next: "<yellow><bold>Next ▶</bold></yellow>"
+  market-share-btn:
+    name: "<green><bold>➕ Share / List My Head</bold></green>"
+    lore:
+      - "<gray>Click to list your current skin head to the market!</gray>"
+  market-my-btn:
+    name: "<aqua><bold>🎒 My Listings</bold></aqua>"
+    lore:
+      - "<gray>Click to manage your active listings.</gray>"
+  market-all-btn:
+    name: "<gold><bold>🌍 All Market Listings</bold></gold>"
+    lore:
+      - "<gray>Click to return to the public marketplace.</gray>"
 
 units:
   item: "<amount>x"
