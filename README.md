@@ -2,7 +2,7 @@
 
 ![PlayerHeadShop Plugin Icon](file:///C:/Users/TW_Jo/.gemini/antigravity/brain/fde998ad-86f5-40ab-9c17-c0e7057b9660/icon.png)
 
-![Version](https://img.shields.io/badge/Version-2.0.1-gold.svg)
+![Version](https://img.shields.io/badge/Version-2.0.2-gold.svg)
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.21%2B-brightgreen.svg)
 ![Server](https://img.shields.io/badge/Platform-Paper%20%7C%20Purpur%20%7C%20Folia-blue.svg)
 ![Java](https://img.shields.io/badge/Java-21%2B-orange.svg)
