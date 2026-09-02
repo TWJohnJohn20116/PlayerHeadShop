@@ -18,6 +18,7 @@ public class SharedHeadRecord {
     private final String sellerName;
     private final String headName;
     private final String skinOwner;
+    private final UUID skinOwnerUuid;
     private final ShopOption.CostType costType;
     private final String costItem;
     private final double costAmount;
@@ -27,13 +28,14 @@ public class SharedHeadRecord {
     private final boolean isActive;
 
     public SharedHeadRecord(long id, UUID sellerUuid, String sellerName, String headName, String skinOwner,
-                            ShopOption.CostType costType, String costItem, double costAmount, int headAmount,
-                            long createdAt, int salesCount, boolean isActive) {
+                            UUID skinOwnerUuid, ShopOption.CostType costType, String costItem, double costAmount,
+                            int headAmount, long createdAt, int salesCount, boolean isActive) {
         this.id = id;
         this.sellerUuid = sellerUuid;
         this.sellerName = sellerName;
         this.headName = headName;
         this.skinOwner = skinOwner;
+        this.skinOwnerUuid = skinOwnerUuid;
         this.costType = costType;
         this.costItem = costItem;
         this.costAmount = costAmount;
@@ -61,6 +63,14 @@ public class SharedHeadRecord {
 
     public String getSkinOwner() {
         return skinOwner;
+    }
+
+    /**
+     * 皮膚擁有者 UUID。以 UUID 取得 OfflinePlayer 不會觸發阻塞式 Mojang API 名稱查詢，
+     * 且玩家改名後皮膚依然正確。
+     */
+    public UUID getSkinOwnerUuid() {
+        return skinOwnerUuid;
     }
 
     public ShopOption.CostType getCostType() {

@@ -38,7 +38,7 @@ public class HeadShopListener implements Listener {
         // ==========================================
         // 情況 1: 主選單 GUI (HeadShopGuiHolder)
         // ==========================================
-        if (event.getInventory().getHolder() instanceof HeadShopGuiHolder holder) {
+        if (event.getView().getTopInventory().getHolder() instanceof HeadShopGuiHolder holder) {
             event.setCancelled(true);
 
             if (event.getClickedInventory() != null && event.getClickedInventory().getHolder() instanceof HeadShopGuiHolder) {
@@ -47,7 +47,9 @@ public class HeadShopListener implements Listener {
                 // 點擊社群市集入口按鈕
                 if (slot == holder.getMarketSlot()) {
                     if (plugin.getMarketGui() != null) {
-                        plugin.getMarketGui().open(player, 1, false);
+                        // 延後一 tick 才切換介面，避免在事件處理期間更換介面
+                        plugin.getSchedulerAdapter().runForEntityLater(player,
+                                () -> plugin.getMarketGui().open(player, 1, false), 1L);
                     }
                     return;
                 }
@@ -59,8 +61,9 @@ public class HeadShopListener implements Listener {
                         // Vault 貨幣、經驗等級、經驗點數：直接扣款購買
                         headShopService.processPurchase(player, option);
                     } else {
-                        // 實體物品方案：開啟放置兌換介面
-                        headShopGui.openDepositGui(player, option);
+                        // 實體物品方案：開啟放置兌換介面（延後一 tick）
+                        plugin.getSchedulerAdapter().runForEntityLater(player,
+                                () -> headShopGui.openDepositGui(player, option), 1L);
                     }
                 }
             }
@@ -70,7 +73,7 @@ public class HeadShopListener implements Listener {
         // ==========================================
         // 情況 2: 放置兌換介面 (DepositGuiHolder)
         // ==========================================
-        if (event.getInventory().getHolder() instanceof DepositGuiHolder holder) {
+        if (event.getView().getTopInventory().getHolder() instanceof DepositGuiHolder holder) {
             if (event.getClickedInventory() != null && event.getClickedInventory().getHolder() instanceof DepositGuiHolder) {
                 int slot = event.getSlot();
 
@@ -85,9 +88,13 @@ public class HeadShopListener implements Listener {
                 if (slot == DepositGuiHolder.CONFIRM_SLOT || slot == DepositGuiHolder.PREVIEW_SLOT) {
                     headShopService.processDepositPurchase(player, holder);
                 } else if (slot == DepositGuiHolder.BACK_SLOT) {
-                    returnInputItems(holder);
+                    // 放置區允許游標持有物品，因此絕不可在事件處理期間切換介面：
+                    // 那會使游標物品進入未定義狀態（Bukkit 明確警告的複製 / 遺失路徑）。
                     holder.setNavigatingBack(true);
-                    headShopGui.open(player);
+                    plugin.getSchedulerAdapter().runForEntityLater(player, () -> {
+                        returnInputItems(holder);
+                        headShopGui.open(player);
+                    }, 1L);
                 }
             } else {
                 if (event.isShiftClick()) {
@@ -99,13 +106,13 @@ public class HeadShopListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onInventoryDrag(InventoryDragEvent event) {
-        if (event.getInventory().getHolder() instanceof HeadShopGuiHolder) {
+        if (event.getView().getTopInventory().getHolder() instanceof HeadShopGuiHolder) {
             event.setCancelled(true);
             return;
         }
 
-        if (event.getInventory().getHolder() instanceof DepositGuiHolder) {
-            int topSize = event.getInventory().getSize();
+        if (event.getView().getTopInventory().getHolder() instanceof DepositGuiHolder) {
+            int topSize = event.getView().getTopInventory().getSize();
             for (int rawSlot : event.getRawSlots()) {
                 if (rawSlot < topSize && !DepositGuiHolder.isInputSlot(rawSlot)) {
                     event.setCancelled(true);

@@ -2,6 +2,7 @@ package com.twjo.playerheadshop.economy;
 
 import com.twjo.playerheadshop.PlayerHeadShop;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 /**
@@ -62,6 +63,16 @@ public class VaultHook {
      * 安全給予玩家貨幣
      */
     public boolean deposit(Player player, double amount) {
+        return provider.deposit(player, amount);
+    }
+
+    /**
+     * 安全給予離線玩家貨幣（用於市集賣家分潤）
+     */
+    public boolean deposit(OfflinePlayer player, double amount) {
+        if (player instanceof Player online) {
+            return provider.deposit(online, amount);
+        }
         return provider.deposit(player, amount);
     }
 

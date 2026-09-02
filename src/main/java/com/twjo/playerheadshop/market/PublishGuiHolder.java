@@ -1,5 +1,6 @@
 package com.twjo.playerheadshop.market;
 
+import com.twjo.playerheadshop.config.PluginConfig;
 import com.twjo.playerheadshop.config.ShopOption;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -21,16 +22,25 @@ public class PublishGuiHolder implements InventoryHolder {
     public static final int CONFIRM_SLOT = 22;
 
     private final Player player;
-    private ShopOption.CostType costType = ShopOption.CostType.ITEM;
-    private Material costItem = Material.DIAMOND;
-    private double costAmount = 1.0;
-    private int headAmount = 1;
+    private ShopOption.CostType costType;
+    private Material costItem;
+    private double costAmount;
+    private int headAmount;
     private String customTitle;
     private Inventory inventory;
 
-    public PublishGuiHolder(Player player) {
+    /**
+     * @param config     初始定價來源（market.default-price.*），服主改設定會立即反映在上架選單
+     * @param titleFormat 預設頭顱名稱樣板，其中的 {@code <player>} 會替換為賣家名稱
+     */
+    public PublishGuiHolder(Player player, PluginConfig config, String titleFormat) {
         this.player = player;
-        this.customTitle = player.getName() + " 的頭顱";
+        this.costType = config != null ? config.getMarketDefaultCostType() : ShopOption.CostType.ITEM;
+        this.costItem = config != null ? config.getMarketDefaultCostItem() : Material.DIAMOND;
+        this.costAmount = Math.max(1.0, config != null ? config.getMarketDefaultCostAmount() : 1.0);
+        this.headAmount = Math.max(1, config != null ? config.getMarketDefaultHeadAmount() : 1);
+        this.customTitle = (titleFormat != null ? titleFormat : "<player>")
+                .replace("<player>", player.getName());
     }
 
     public Player getPlayer() {

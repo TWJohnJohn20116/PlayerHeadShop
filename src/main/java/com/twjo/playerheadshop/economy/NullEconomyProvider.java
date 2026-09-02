@@ -1,5 +1,6 @@
 package com.twjo.playerheadshop.economy;
 
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 /**
@@ -29,6 +30,11 @@ public class NullEconomyProvider implements EconomyProvider {
 
     @Override
     public boolean deposit(Player player, double amount) {
+        return false;
+    }
+
+    @Override
+    public boolean deposit(OfflinePlayer player, double amount) {
         return false;
     }
 

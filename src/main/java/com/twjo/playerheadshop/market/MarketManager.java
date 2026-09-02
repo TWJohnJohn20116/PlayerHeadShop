@@ -17,6 +17,7 @@ import org.bukkit.inventory.meta.SkullMeta;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -36,6 +37,9 @@ public class MarketManager {
 
     /**
      * 玩家發布/上架頭顱至社群市集
+     *
+     * <p>上架數量上限的檢查與寫入由 {@link DatabaseManager#addSharedHead} 在同一個資料庫任務中完成，
+     * 因此連點兩下不會同時通過檢查。</p>
      */
     public CompletableFuture<Boolean> publishHead(Player seller, String title, ShopOption.CostType costType,
                                                   String costItem, double costAmount, int headAmount) {
@@ -44,42 +48,45 @@ public class MarketManager {
             return CompletableFuture.completedFuture(false);
         }
 
-        int maxListings = plugin.getPluginConfig().getMarketMaxListings();
-        return databaseManager.getPlayerActiveListingsCount(seller.getUniqueId()).thenCompose(count -> {
-            if (count >= maxListings && !seller.hasPermission("playerheadshop.admin")) {
-                lang.sendMessage(seller, "market-max-listings",
-                        Placeholder.parsed("max", String.valueOf(maxListings))
-                );
-                return CompletableFuture.completedFuture(false);
-            }
+        int maxListings = seller.hasPermission("playerheadshop.admin")
+                ? 0 // 0 代表不限制
+                : plugin.getPluginConfig().getMarketMaxListings();
 
-            String finalTitle = (title != null && !title.isEmpty()) ? title : seller.getName() + " 的頭顱";
-            String skinOwner = seller.getName();
+        String finalTitle = (title != null && !title.isEmpty())
+                ? title
+                : lang.getRaw(seller, "market.default-head-name", "<player> 的頭顱")
+                        .replace("<player>", seller.getName());
 
-            return databaseManager.addSharedHead(
-                    seller.getUniqueId(),
-                    seller.getName(),
-                    finalTitle,
-                    skinOwner,
-                    costType.name(),
-                    costItem,
-                    costAmount,
-                    headAmount
-            ).thenApply(id -> {
-                if (id > 0) {
+        return databaseManager.addSharedHead(
+                seller.getUniqueId(),
+                seller.getName(),
+                finalTitle,
+                seller.getName(),
+                seller.getUniqueId(),
+                costType.name(),
+                costItem,
+                costAmount,
+                headAmount,
+                maxListings
+        ).thenApply(id -> {
+            // 所有玩家互動都必須跳回該玩家所屬的區域執行緒
+            plugin.getSchedulerAdapter().runForEntity(seller, () -> {
+                if (id == -2L) {
+                    lang.sendMessage(seller, "market-max-listings",
+                            Placeholder.parsed("max", String.valueOf(plugin.getPluginConfig().getMarketMaxListings()))
+                    );
+                    playSound(seller, Sound.ENTITY_VILLAGER_NO, 1.0f);
+                } else if (id > 0) {
                     lang.sendMessage(seller, "market-publish-success",
                             Placeholder.parsed("id", String.valueOf(id)),
                             Placeholder.parsed("title", finalTitle)
                     );
-                    try {
-                        seller.playSound(seller.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.2f);
-                    } catch (Throwable ignored) {}
-                    return true;
+                    playSound(seller, Sound.ENTITY_PLAYER_LEVELUP, 1.2f);
                 } else {
                     lang.sendMessage(seller, "market-publish-failed");
-                    return false;
                 }
             });
+            return id > 0;
         });
     }
 
@@ -88,17 +95,22 @@ public class MarketManager {
      */
     public CompletableFuture<Boolean> unlistHead(Player player, long id, boolean isAdmin) {
         return databaseManager.removeSharedHead(id, player.getUniqueId(), isAdmin).thenApply(success -> {
-            if (success) {
-                lang.sendMessage(player, "market-unlist-success", Placeholder.parsed("id", String.valueOf(id)));
-            } else {
-                lang.sendMessage(player, "market-unlist-failed");
-            }
+            plugin.getSchedulerAdapter().runForEntity(player, () -> {
+                if (success) {
+                    lang.sendMessage(player, "market-unlist-success", Placeholder.parsed("id", String.valueOf(id)));
+                } else {
+                    lang.sendMessage(player, "market-unlist-failed");
+                }
+            });
             return success;
         });
     }
 
     /**
      * 購買社群分享的頭顱
+     *
+     * <p>{@code head} 必須是剛從資料庫重新讀取的最新狀態（見
+     * {@link DatabaseManager#getActiveSharedHeadById}），不可使用 GUI 開啟時的快照，否則會買到已下架商品。</p>
      */
     public boolean purchaseSharedHead(Player buyer, SharedHeadRecord head) {
         if (buyer == null || !buyer.isOnline() || head == null || !head.isActive()) {
@@ -122,17 +134,13 @@ public class MarketManager {
                         Placeholder.parsed("current", plugin.getVaultHook().format(current)),
                         Placeholder.parsed("missing", plugin.getVaultHook().format(cost - current))
                 );
-                try {
-                    buyer.playSound(buyer.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
-                } catch (Throwable ignored) {}
+                playSound(buyer, Sound.ENTITY_VILLAGER_NO, 1.0f);
                 return false;
             }
             if (!plugin.getVaultHook().withdraw(buyer, cost)) {
                 return false;
             }
-            if (plugin.getPluginConfig().isPoolEnabled() && plugin.getPluginConfig().isPoolCollectVault() && plugin.getTreasuryManager() != null) {
-                plugin.getTreasuryManager().depositVault(cost);
-            }
+            distributeVaultRevenue(head, cost);
         }
         // 2. 處理經驗等級付款
         else if (type == ShopOption.CostType.EXP_LEVEL) {
@@ -144,9 +152,7 @@ public class MarketManager {
                         Placeholder.parsed("current", lang.formatExpLevel(buyer, curLvl)),
                         Placeholder.parsed("missing", lang.formatExpLevel(buyer, reqLvl - curLvl))
                 );
-                try {
-                    buyer.playSound(buyer.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
-                } catch (Throwable ignored) {}
+                playSound(buyer, Sound.ENTITY_VILLAGER_NO, 1.0f);
                 return false;
             }
             buyer.setLevel(curLvl - reqLvl);
@@ -165,9 +171,7 @@ public class MarketManager {
                         Placeholder.parsed("current", lang.formatExpPoints(buyer, curPts)),
                         Placeholder.parsed("missing", lang.formatExpPoints(buyer, reqPts - curPts))
                 );
-                try {
-                    buyer.playSound(buyer.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
-                } catch (Throwable ignored) {}
+                playSound(buyer, Sound.ENTITY_VILLAGER_NO, 1.0f);
                 return false;
             }
             ExperienceUtil.deductPlayerExp(buyer, reqPts);
@@ -188,9 +192,7 @@ public class MarketManager {
                         Placeholder.parsed("current", lang.formatAmount(buyer, curItem)),
                         Placeholder.parsed("missing", lang.formatAmount(buyer, reqItem - curItem))
                 );
-                try {
-                    buyer.playSound(buyer.getLocation(), Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f);
-                } catch (Throwable ignored) {}
+                playSound(buyer, Sound.ENTITY_VILLAGER_NO, 1.0f);
                 return false;
             }
             deductItems(buyer, mat, reqItem);
@@ -200,7 +202,7 @@ public class MarketManager {
         }
 
         // 5. 生成帶有原創者皮膚的頭顱物品並發放
-        giveSharedHeadToPlayer(buyer, head.getSkinOwner(), headAmount);
+        giveSharedHeadToPlayer(buyer, head.getSkinOwnerUuid(), headAmount);
 
         // 6. 增加市集銷量與記錄日誌
         databaseManager.incrementSharedHeadSales(head.getId());
@@ -212,18 +214,51 @@ public class MarketManager {
                 Placeholder.parsed("head_amount", lang.formatAmount(buyer, headAmount))
         );
 
-        try {
-            buyer.playSound(buyer.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.2f);
-        } catch (Throwable ignored) {}
+        playSound(buyer, Sound.ENTITY_PLAYER_LEVELUP, 1.2f);
 
         return true;
     }
 
-    private void giveSharedHeadToPlayer(Player buyer, String skinOwnerName, int totalAmount) {
+    /**
+     * 依 market.seller-payout-percent 將 Vault 收入分配給賣家，餘額進入伺服器金庫
+     */
+    private void distributeVaultRevenue(SharedHeadRecord head, double cost) {
+        double percent = plugin.getPluginConfig().getMarketSellerPayoutPercent();
+        double sellerShare = cost * (percent / 100.0);
+        double treasuryShare = cost - sellerShare;
+
+        if (sellerShare > 0) {
+            OfflinePlayer seller = Bukkit.getOfflinePlayer(head.getSellerUuid());
+            if (!plugin.getVaultHook().deposit(seller, sellerShare)) {
+                // 無法付給賣家時，該筆金額改入伺服器金庫，避免金錢憑空消失
+                plugin.getLogger().warning("無法將 " + plugin.getVaultHook().format(sellerShare)
+                        + " 分潤付給賣家 " + head.getSellerName() + "，已改為匯入收益金庫。");
+                treasuryShare += sellerShare;
+            } else {
+                Player onlineSeller = seller.getPlayer();
+                if (onlineSeller != null) {
+                    plugin.getSchedulerAdapter().runForEntity(onlineSeller, () ->
+                            lang.sendMessage(onlineSeller, "market-sale-payout",
+                                    Placeholder.parsed("amount", plugin.getVaultHook().format(sellerShare)),
+                                    Placeholder.parsed("title", head.getHeadName())
+                            ));
+                }
+            }
+        }
+
+        if (treasuryShare > 0
+                && plugin.getPluginConfig().isPoolEnabled()
+                && plugin.getPluginConfig().isPoolCollectVault()
+                && plugin.getTreasuryManager() != null) {
+            plugin.getTreasuryManager().depositVault(treasuryShare);
+        }
+    }
+
+    private void giveSharedHeadToPlayer(Player buyer, UUID skinOwnerUuid, int totalAmount) {
         List<ItemStack> list = new ArrayList<>();
         int remaining = totalAmount;
 
-        OfflinePlayer skinPlayer = Bukkit.getOfflinePlayer(skinOwnerName);
+        OfflinePlayer skinPlayer = Bukkit.getOfflinePlayer(skinOwnerUuid);
 
         while (remaining > 0) {
             int size = Math.min(64, remaining);
@@ -252,6 +287,12 @@ public class MarketManager {
         if (hasOverflow) {
             lang.sendMessage(buyer, "inventory-full");
         }
+    }
+
+    private void playSound(Player player, Sound sound, float pitch) {
+        try {
+            player.playSound(player.getLocation(), sound, 1.0f, pitch);
+        } catch (Throwable ignored) {}
     }
 
     private int countItems(Player player, Material material) {

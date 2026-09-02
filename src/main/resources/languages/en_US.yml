@@ -44,6 +44,8 @@ messages:
   treasury-empty-exp: "<red>There is currently no experience points in the treasury!</red>"
   treasury-withdraw-vault-success: "<green>Successfully withdrew <gold><amount></gold> from treasury!</green>"
   treasury-withdraw-exp-success: "<green>Successfully withdrew <gold><amount></gold> from treasury!</green>"
+  treasury-withdraw-failed: "<red>Withdrawal failed: the economy plugin rejected the payout. The amount has been returned to the treasury.</red>"
+  treasury-item-stale: "<yellow>Treasury contents changed (someone took it first, or new revenue arrived). The view has been reloaded.</yellow>"
   treasury-info-header: "<gold><bold>=== PlayerHeadShop Treasury Assets ===</bold></gold>"
   treasury-info-vault: "<white>Vault Balance: <gold><amount></gold></white>"
   treasury-info-exp: "<white>Exp Points: <green><amount></green></white>"
@@ -61,6 +63,24 @@ messages:
   market-unlist-success: "<green>Successfully unlisted head (ID: <id>)!</green>"
   market-unlist-failed: "<red>Failed to unlist head, item not found or you are not the owner.</red>"
   market-buy-success: "<green>Successfully purchased <gold><head_amount></gold> head(s) shared by <yellow><seller></yellow>!</green>"
+  market-listing-gone: "<red>That listing has been removed or sold. The market has been reloaded.</red>"
+  market-sale-payout: "<green>Your listing <gold><title></gold> sold! You earned <gold><amount></gold>.</green>"
+
+# Dynamic text used in the market and publish menus
+market:
+  default-head-name: "<player>'s Head"
+  mode-vault: "Vault Economy"
+  mode-exp-level: "Exp Levels"
+  mode-exp-points: "Exp Points"
+  mode-item: "<item> (Physical Item)"
+
+# Sign input prompts (max 15 characters per line)
+sign:
+  separator: "^^^^^^^^^^^^^^^"
+  price-hint-1: "Type the price"
+  price-hint-2: "on line one"
+  title-hint-1: "Type the title"
+  title-hint-2: "on line one"
 
 gui:
   main-title: "<gradient:#FFAA00:#FF5555><bold>Player Head Shop</bold></gradient>"
@@ -213,6 +233,8 @@ gui:
 
 units:
   item: "<amount>x"
+  item-detail: "<amount>x <item>"
+  currency: "<amount>"
   stacks-exact: "<amount>x (<stacks> stacks)"
   stacks-rem: "<amount>x (<stacks> stacks + <rem>x)"
   exp-level: "<amount> Levels"

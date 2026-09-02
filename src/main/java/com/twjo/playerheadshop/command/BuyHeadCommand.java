@@ -208,7 +208,12 @@ public class BuyHeadCommand extends Command {
             return;
         }
         if (treasuryManager.withdrawVault(player, balance)) {
-            plugin.getVaultHook().deposit(player, balance);
+            // 發放失敗必須回滾，否則金庫已扣、管理員沒拿到，金額直接蒸發
+            if (!plugin.getVaultHook().deposit(player, balance)) {
+                treasuryManager.refundVault(balance);
+                lang.sendMessage(player, "treasury-withdraw-failed");
+                return;
+            }
             lang.sendMessage(player, "treasury-withdraw-vault-success",
                     Placeholder.parsed("amount", plugin.getVaultHook().format(balance))
             );
@@ -272,11 +277,14 @@ public class BuyHeadCommand extends Command {
 
     private String formatTreasuryLogDetail(CommandSender sender, TreasuryLogRecord rec) {
         if ("WITHDRAW_VAULT".equalsIgnoreCase(rec.getActionType())) {
-            return plugin.getVaultHook().format(rec.getAmount()) + " 金幣";
+            return lang.getRaw(sender, "units.currency", "<amount> 金幣")
+                    .replace("<amount>", plugin.getVaultHook().format(rec.getAmount()));
         } else if ("WITHDRAW_EXP".equalsIgnoreCase(rec.getActionType())) {
             return lang.formatExpPoints(sender, (int) Math.round(rec.getAmount()));
         } else {
-            return (int) Math.round(rec.getAmount()) + " 個 " + rec.getDetail();
+            return lang.getRaw(sender, "units.item-detail", "<amount> 個 <item>")
+                    .replace("<amount>", String.valueOf((int) Math.round(rec.getAmount())))
+                    .replace("<item>", rec.getDetail());
         }
     }
 

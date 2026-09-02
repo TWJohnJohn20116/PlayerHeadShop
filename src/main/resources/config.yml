@@ -45,6 +45,13 @@ market:
   # 每位玩家最多可同時上架的頭顱數量上限
   max-listings-per-player: 5
 
+  # 買家以 Vault 金幣購買時，撥給賣家的分潤百分比 (0 ~ 100)
+  #   100 - 全額歸賣家（真正的玩家市集）
+  #    80 - 賣家拿 8 成，其餘 2 成作為手續費進入伺服器金庫
+  #     0 - 全額進入伺服器金庫（純分享模式，賣家無收益）
+  # 註：經驗與實體物品付款不支援分潤，一律依 pool.collect-* 設定進入金庫。
+  seller-payout-percent: 100
+
   # 一鍵分享與預設上架定價模式
   default-price:
     cost-type: "ITEM"            # 預設定價模式 (ITEM, VAULT, EXP_LEVEL, EXP_POINTS)

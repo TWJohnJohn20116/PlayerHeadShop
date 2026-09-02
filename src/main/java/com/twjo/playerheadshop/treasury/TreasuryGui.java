@@ -39,14 +39,25 @@ public class TreasuryGui {
         if (admin == null || !admin.isOnline()) return;
 
         Component title = lang.getComponent(admin, "gui.treasury-title");
-        TreasuryGuiHolder holder = new TreasuryGuiHolder(admin);
+        TreasuryGuiHolder holder = new TreasuryGuiHolder(admin, treasuryManager.getItemsGeneration());
         Inventory inventory = Bukkit.createInventory(holder, TreasuryGuiHolder.SIZE, title);
         holder.setInventory(inventory);
 
+        render(admin, holder, inventory);
+
+        // 開啟介面
+        admin.openInventory(inventory);
+    }
+
+    /**
+     * 將金庫最新狀態渲染進指定介面（不重新開啟視窗，避免游標物品進入未定義狀態）
+     */
+    public void render(Player admin, TreasuryGuiHolder holder, Inventory inventory) {
         // 1. 填入目前金庫中的實體物品 (Slots 0 ~ 44)
+        holder.setGeneration(treasuryManager.getItemsGeneration());
         List<ItemStack> items = treasuryManager.getItemsSnapshot();
-        for (int i = 0; i < TreasuryGuiHolder.ITEM_STORAGE_LIMIT && i < items.size(); i++) {
-            inventory.setItem(i, items.get(i));
+        for (int i = 0; i < TreasuryGuiHolder.ITEM_STORAGE_LIMIT; i++) {
+            inventory.setItem(i, i < items.size() ? items.get(i) : null);
         }
 
         // 2. 底排裝飾填充玻璃板
@@ -67,9 +78,25 @@ public class TreasuryGui {
 
         // 6. Slot 53: 重新整理按鈕 (Clock)
         inventory.setItem(TreasuryGuiHolder.REFRESH_SLOT, createRefreshButton(admin));
+    }
 
-        // 開啟介面
-        admin.openInventory(inventory);
+    /**
+     * 重新整理所有目前正在觀看金庫的管理員畫面（於金庫內容被其他來源變更時呼叫）
+     *
+     * <p>會自動切換至各觀看者所屬的區域執行緒，因此可安全從資料庫回呼或其他執行緒呼叫。</p>
+     */
+    public void refreshOpenViews() {
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            Inventory top = online.getOpenInventory().getTopInventory();
+            if (top.getHolder() instanceof TreasuryGuiHolder holder) {
+                plugin.getSchedulerAdapter().runForEntity(online, () -> {
+                    Inventory current = online.getOpenInventory().getTopInventory();
+                    if (current.getHolder() instanceof TreasuryGuiHolder h && h == holder) {
+                        render(online, h, current);
+                    }
+                });
+            }
+        }
     }
 
     private ItemStack createFillerItem() {

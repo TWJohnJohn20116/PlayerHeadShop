@@ -4,6 +4,7 @@ import com.twjo.playerheadshop.PlayerHeadShop;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
 
@@ -74,6 +75,20 @@ public class VaultEconomyProvider implements EconomyProvider {
         }
         EconomyResponse response = economy.depositPlayer(player, amount);
         return response.transactionSuccess();
+    }
+
+    @Override
+    public boolean deposit(OfflinePlayer player, double amount) {
+        if (!hasEconomy() || player == null) {
+            return false;
+        }
+        try {
+            EconomyResponse response = economy.depositPlayer(player, amount);
+            return response.transactionSuccess();
+        } catch (Throwable t) {
+            plugin.getLogger().warning("向離線玩家發放貨幣失敗: " + t.getMessage());
+            return false;
+        }
     }
 
     @Override

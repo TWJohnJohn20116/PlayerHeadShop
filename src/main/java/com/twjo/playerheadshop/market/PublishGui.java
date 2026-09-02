@@ -36,7 +36,8 @@ public class PublishGui {
         if (player == null || !player.isOnline()) return;
 
         if (holder == null) {
-            holder = new PublishGuiHolder(player);
+            holder = new PublishGuiHolder(player, plugin.getPluginConfig(),
+                    lang.getRaw(player, "market.default-head-name", "<player> 的頭顱"));
         }
 
         Component title = lang.getComponent(player, "gui.publish-title");
@@ -91,10 +92,11 @@ public class PublishGui {
 
     private String getModeDisplayName(Player player, ShopOption.CostType type, Material item) {
         return switch (type) {
-            case VAULT -> "Vault 經濟金幣";
-            case EXP_LEVEL -> "經驗等級";
-            case EXP_POINTS -> "經驗點數";
-            default -> (item != null ? item.name() : "DIAMOND") + " (實體物品)";
+            case VAULT -> lang.getRaw(player, "market.mode-vault", "Vault 經濟金幣");
+            case EXP_LEVEL -> lang.getRaw(player, "market.mode-exp-level", "經驗等級");
+            case EXP_POINTS -> lang.getRaw(player, "market.mode-exp-points", "經驗點數");
+            default -> lang.getRaw(player, "market.mode-item", "<item> (實體物品)")
+                    .replace("<item>", item != null ? item.name() : "DIAMOND");
         };
     }
 

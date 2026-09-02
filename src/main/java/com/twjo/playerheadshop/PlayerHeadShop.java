@@ -17,6 +17,7 @@ import com.twjo.playerheadshop.service.HeadShopService;
 import com.twjo.playerheadshop.treasury.TreasuryGui;
 import com.twjo.playerheadshop.treasury.TreasuryListener;
 import com.twjo.playerheadshop.treasury.TreasuryManager;
+import com.twjo.playerheadshop.util.SchedulerAdapter;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
@@ -25,6 +26,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class PlayerHeadShop extends JavaPlugin {
 
     private static PlayerHeadShop instance;
+    private SchedulerAdapter schedulerAdapter;
     private PluginConfig pluginConfig;
     private LanguageManager languageManager;
     private VaultHook vaultHook;
@@ -45,6 +47,9 @@ public final class PlayerHeadShop extends JavaPlugin {
         // 儲存並初始化預設設定檔
         saveDefaultConfig();
 
+        // 排程器抽象層（自動偵測 Folia 並改用區域化排程器）
+        this.schedulerAdapter = new SchedulerAdapter(this);
+
         // 載入配置、多語言、Vault 經濟、資料庫、金庫、市集與服務
         this.pluginConfig = new PluginConfig(this);
         this.languageManager = new LanguageManager(this);
@@ -62,8 +67,8 @@ public final class PlayerHeadShop extends JavaPlugin {
         // 註冊事件監聽器 (商店選單、放置兌換、收益金庫、社群市集、發布選單與告示牌輸入)
         getServer().getPluginManager().registerEvents(new HeadShopListener(this, this.headShopService, this.headShopGui), this);
         getServer().getPluginManager().registerEvents(new TreasuryListener(this, this.languageManager, this.treasuryManager, this.treasuryGui), this);
-        getServer().getPluginManager().registerEvents(new MarketListener(this, this.marketManager, this.marketGui, this.pluginConfig), this);
-        getServer().getPluginManager().registerEvents(new PublishListener(this, this.publishGui, this.marketManager, this.signInputManager), this);
+        getServer().getPluginManager().registerEvents(new MarketListener(this, this.marketManager, this.marketGui, this.pluginConfig, this.languageManager), this);
+        getServer().getPluginManager().registerEvents(new PublishListener(this, this.publishGui, this.marketManager, this.signInputManager, this.languageManager), this);
         getServer().getPluginManager().registerEvents(this.signInputManager, this);
 
         // 註冊指令至伺服器 CommandMap (相容 Paper 現代架構與傳統伺服器)
@@ -75,6 +80,10 @@ public final class PlayerHeadShop extends JavaPlugin {
             getLogger().info("已成功連接至 Vault 經濟系統 (貨幣: " + this.vaultHook.getCurrencyName() + ")！");
         } else {
             getLogger().info("未檢測到 Vault 經濟插件，僅啟用物品兌換模式。");
+        }
+
+        if (this.schedulerAdapter.isFolia()) {
+            getLogger().info("已偵測到 Folia，將使用區域化排程器 (GlobalRegionScheduler / EntityScheduler)。");
         }
 
         getLogger().info("PlayerHeadShop v" + getPluginMeta().getVersion() + " (Vault, Database, Treasury, GUI Market & i18n enabled) 已成功加載並啟用！");
@@ -94,6 +103,13 @@ public final class PlayerHeadShop extends JavaPlugin {
 
     public static PlayerHeadShop getInstance() {
         return instance;
+    }
+
+    /**
+     * 排程器抽象層：所有主執行緒排程都必須經由此物件，以相容 Folia
+     */
+    public SchedulerAdapter getSchedulerAdapter() {
+        return schedulerAdapter;
     }
 
     public PluginConfig getPluginConfig() {

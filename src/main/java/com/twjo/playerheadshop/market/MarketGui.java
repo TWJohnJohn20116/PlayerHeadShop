@@ -45,12 +45,12 @@ public class MarketGui {
 
         if (myListingsOnly) {
             databaseManager.getPlayerSharedHeads(player.getUniqueId()).thenAccept(list -> {
-                Bukkit.getScheduler().runTask(plugin, () -> renderGui(player, targetPage, true, list, list.size()));
+                plugin.getSchedulerAdapter().runForEntity(player, () -> renderGui(player, targetPage, true, list, list.size()));
             });
         } else {
             databaseManager.getTotalActiveSharedHeads().thenAccept(total -> {
                 databaseManager.getActiveSharedHeads(targetPage, MarketGuiHolder.PAGE_SIZE).thenAccept(list -> {
-                    Bukkit.getScheduler().runTask(plugin, () -> renderGui(player, targetPage, false, list, total));
+                    plugin.getSchedulerAdapter().runForEntity(player, () -> renderGui(player, targetPage, false, list, total));
                 });
             });
         }
@@ -119,7 +119,8 @@ public class MarketGui {
 
         if (meta instanceof SkullMeta skullMeta) {
             try {
-                OfflinePlayer skinPlayer = Bukkit.getOfflinePlayer(rec.getSkinOwner());
+                // 以 UUID 取得 OfflinePlayer：不會觸發阻塞式 Mojang API 名稱查詢
+                OfflinePlayer skinPlayer = Bukkit.getOfflinePlayer(rec.getSkinOwnerUuid());
                 skullMeta.setOwningPlayer(skinPlayer);
             } catch (Throwable ignored) {}
 

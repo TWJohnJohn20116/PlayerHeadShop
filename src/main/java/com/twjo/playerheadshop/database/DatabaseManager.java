@@ -121,10 +121,43 @@ public class DatabaseManager {
                     stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_shared_active ON shared_heads(is_active, created_at DESC);");
                     stmt.executeUpdate("CREATE INDEX IF NOT EXISTS idx_shared_seller ON shared_heads(seller_uuid, is_active);");
                 }
+
+                // 6. 結構遷移：皮膚擁有者改以 UUID 儲存，避免以名稱反查觸發阻塞式 Mojang API 查詢
+                migrateSkinOwnerUuid();
             } catch (SQLException e) {
                 plugin.getLogger().log(Level.SEVERE, "無法初始化 SQLite 資料庫", e);
             }
         });
+    }
+
+    /**
+     * 為 shared_heads 補上 skin_owner_uuid 欄位，並將舊資料回填為賣家 UUID
+     *
+     * <p>舊版 publishHead 一律以 {@code seller.getName()} 作為皮膚來源，因此賣家 UUID 即為正確的皮膚
+     * 擁有者 UUID，回填後玩家改名亦不會導致皮膚失效。</p>
+     */
+    private void migrateSkinOwnerUuid() throws SQLException {
+        boolean hasColumn = false;
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery("PRAGMA table_info(shared_heads)")) {
+            while (rs.next()) {
+                if ("skin_owner_uuid".equalsIgnoreCase(rs.getString("name"))) {
+                    hasColumn = true;
+                    break;
+                }
+            }
+        }
+
+        if (hasColumn) {
+            return;
+        }
+
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("ALTER TABLE shared_heads ADD COLUMN skin_owner_uuid TEXT");
+            int updated = stmt.executeUpdate(
+                    "UPDATE shared_heads SET skin_owner_uuid = seller_uuid WHERE skin_owner_uuid IS NULL");
+            plugin.getLogger().info("已為社群市集資料表新增 skin_owner_uuid 欄位並回填 " + updated + " 筆既有上架資料。");
+        }
     }
 
     // ==========================================
@@ -397,21 +430,37 @@ public class DatabaseManager {
     // ==========================================
 
     public CompletableFuture<Long> addSharedHead(UUID sellerUuid, String sellerName, String headName, String skinOwner,
-                                                 String costType, String costItem, double costAmount, int headAmount) {
+                                                 UUID skinOwnerUuid, String costType, String costItem,
+                                                 double costAmount, int headAmount, int maxListings) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 if (connection == null || connection.isClosed()) return -1L;
-                String sql = "INSERT INTO shared_heads (seller_uuid, seller_name, head_name, skin_owner, cost_type, cost_item, cost_amount, head_amount, created_at, sales_count, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1)";
+
+                // 於單一執行緒的資料庫佇列內同時檢查上限與寫入，避免連點兩下同時通過檢查
+                if (maxListings > 0) {
+                    String countSql = "SELECT COUNT(*) FROM shared_heads WHERE seller_uuid = ? AND is_active = 1";
+                    try (PreparedStatement countStmt = connection.prepareStatement(countSql)) {
+                        countStmt.setString(1, sellerUuid.toString());
+                        try (ResultSet rs = countStmt.executeQuery()) {
+                            if (rs.next() && rs.getInt(1) >= maxListings) {
+                                return -2L; // -2 表示已達上架上限
+                            }
+                        }
+                    }
+                }
+
+                String sql = "INSERT INTO shared_heads (seller_uuid, seller_name, head_name, skin_owner, skin_owner_uuid, cost_type, cost_item, cost_amount, head_amount, created_at, sales_count, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1)";
                 try (PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
                     pstmt.setString(1, sellerUuid.toString());
                     pstmt.setString(2, sellerName);
                     pstmt.setString(3, headName);
                     pstmt.setString(4, skinOwner);
-                    pstmt.setString(5, costType);
-                    pstmt.setString(6, costItem);
-                    pstmt.setDouble(7, costAmount);
-                    pstmt.setInt(8, headAmount);
-                    pstmt.setLong(9, System.currentTimeMillis());
+                    pstmt.setString(5, skinOwnerUuid != null ? skinOwnerUuid.toString() : null);
+                    pstmt.setString(6, costType);
+                    pstmt.setString(7, costItem);
+                    pstmt.setDouble(8, costAmount);
+                    pstmt.setInt(9, headAmount);
+                    pstmt.setLong(10, System.currentTimeMillis());
                     pstmt.executeUpdate();
 
                     try (ResultSet rs = pstmt.getGeneratedKeys()) {
@@ -487,7 +536,7 @@ public class DatabaseManager {
             try {
                 if (connection == null || connection.isClosed()) return list;
                 int offset = Math.max(0, (page - 1) * pageSize);
-                String sql = "SELECT id, seller_uuid, seller_name, head_name, skin_owner, cost_type, cost_item, cost_amount, head_amount, created_at, sales_count, is_active FROM shared_heads WHERE is_active = 1 ORDER BY created_at DESC LIMIT ? OFFSET ?";
+                String sql = "SELECT id, seller_uuid, seller_name, head_name, skin_owner, skin_owner_uuid, cost_type, cost_item, cost_amount, head_amount, created_at, sales_count, is_active FROM shared_heads WHERE is_active = 1 ORDER BY created_at DESC LIMIT ? OFFSET ?";
 
                 try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
                     pstmt.setInt(1, pageSize);
@@ -495,21 +544,7 @@ public class DatabaseManager {
 
                     try (ResultSet rs = pstmt.executeQuery()) {
                         while (rs.next()) {
-                            long id = rs.getLong("id");
-                            UUID sellerUuid = UUID.fromString(rs.getString("seller_uuid"));
-                            String sellerName = rs.getString("seller_name");
-                            String headName = rs.getString("head_name");
-                            String skinOwner = rs.getString("skin_owner");
-                            String costTypeStr = rs.getString("cost_type");
-                            ShopOption.CostType costType = ShopOption.CostType.valueOf(costTypeStr);
-                            String costItem = rs.getString("cost_item");
-                            double costAmount = rs.getDouble("cost_amount");
-                            int headAmount = rs.getInt("head_amount");
-                            long createdAt = rs.getLong("created_at");
-                            int salesCount = rs.getInt("sales_count");
-                            boolean isActive = rs.getInt("is_active") == 1;
-
-                            list.add(new SharedHeadRecord(id, sellerUuid, sellerName, headName, skinOwner, costType, costItem, costAmount, headAmount, createdAt, salesCount, isActive));
+                            list.add(readSharedHead(rs, null));
                         }
                     }
                 }
@@ -525,26 +560,13 @@ public class DatabaseManager {
             List<SharedHeadRecord> list = new ArrayList<>();
             try {
                 if (connection == null || connection.isClosed()) return list;
-                String sql = "SELECT id, seller_uuid, seller_name, head_name, skin_owner, cost_type, cost_item, cost_amount, head_amount, created_at, sales_count, is_active FROM shared_heads WHERE seller_uuid = ? AND is_active = 1 ORDER BY created_at DESC";
+                String sql = "SELECT id, seller_uuid, seller_name, head_name, skin_owner, skin_owner_uuid, cost_type, cost_item, cost_amount, head_amount, created_at, sales_count, is_active FROM shared_heads WHERE seller_uuid = ? AND is_active = 1 ORDER BY created_at DESC";
 
                 try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
                     pstmt.setString(1, sellerUuid.toString());
                     try (ResultSet rs = pstmt.executeQuery()) {
                         while (rs.next()) {
-                            long id = rs.getLong("id");
-                            String sellerName = rs.getString("seller_name");
-                            String headName = rs.getString("head_name");
-                            String skinOwner = rs.getString("skin_owner");
-                            String costTypeStr = rs.getString("cost_type");
-                            ShopOption.CostType costType = ShopOption.CostType.valueOf(costTypeStr);
-                            String costItem = rs.getString("cost_item");
-                            double costAmount = rs.getDouble("cost_amount");
-                            int headAmount = rs.getInt("head_amount");
-                            long createdAt = rs.getLong("created_at");
-                            int salesCount = rs.getInt("sales_count");
-                            boolean isActive = rs.getInt("is_active") == 1;
-
-                            list.add(new SharedHeadRecord(id, sellerUuid, sellerName, headName, skinOwner, costType, costItem, costAmount, headAmount, createdAt, salesCount, isActive));
+                            list.add(readSharedHead(rs, sellerUuid));
                         }
                     }
                 }
@@ -553,6 +575,64 @@ public class DatabaseManager {
             }
             return list;
         }, executor);
+    }
+
+    /**
+     * 重新讀取指定上架項目的最新狀態（購買前用於確認商品仍在架上且價格未變）
+     *
+     * @return 最新資料，或 {@code null} 表示查無此項目 / 已下架
+     */
+    public CompletableFuture<SharedHeadRecord> getActiveSharedHeadById(long id) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                if (connection == null || connection.isClosed()) return null;
+                String sql = "SELECT id, seller_uuid, seller_name, head_name, skin_owner, skin_owner_uuid, cost_type, cost_item, cost_amount, head_amount, created_at, sales_count, is_active FROM shared_heads WHERE id = ? AND is_active = 1";
+                try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                    pstmt.setLong(1, id);
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        if (rs.next()) {
+                            return readSharedHead(rs, null);
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.WARNING, "查詢單一市集頭顱失敗: " + id, e);
+            }
+            return null;
+        }, executor);
+    }
+
+    /**
+     * 自 ResultSet 組出 SharedHeadRecord。{@code knownSellerUuid} 為已知賣家 UUID 時可省略欄位讀取。
+     */
+    private SharedHeadRecord readSharedHead(ResultSet rs, UUID knownSellerUuid) throws SQLException {
+        long id = rs.getLong("id");
+        UUID sellerUuid = knownSellerUuid != null ? knownSellerUuid : UUID.fromString(rs.getString("seller_uuid"));
+        String sellerName = rs.getString("seller_name");
+        String headName = rs.getString("head_name");
+        String skinOwner = rs.getString("skin_owner");
+
+        UUID skinOwnerUuid = null;
+        String skinUuidStr = rs.getString("skin_owner_uuid");
+        if (skinUuidStr != null && !skinUuidStr.isEmpty()) {
+            try {
+                skinOwnerUuid = UUID.fromString(skinUuidStr);
+            } catch (IllegalArgumentException ignored) {}
+        }
+        if (skinOwnerUuid == null) {
+            skinOwnerUuid = sellerUuid;
+        }
+
+        ShopOption.CostType costType = ShopOption.CostType.valueOf(rs.getString("cost_type"));
+        String costItem = rs.getString("cost_item");
+        double costAmount = rs.getDouble("cost_amount");
+        int headAmount = rs.getInt("head_amount");
+        long createdAt = rs.getLong("created_at");
+        int salesCount = rs.getInt("sales_count");
+        boolean isActive = rs.getInt("is_active") == 1;
+
+        return new SharedHeadRecord(id, sellerUuid, sellerName, headName, skinOwner, skinOwnerUuid,
+                costType, costItem, costAmount, headAmount, createdAt, salesCount, isActive);
     }
 
     public CompletableFuture<Void> incrementSharedHeadSales(long id) {

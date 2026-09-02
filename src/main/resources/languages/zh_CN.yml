@@ -44,6 +44,8 @@ messages:
   treasury-empty-exp: "<red>目前金库内没有任何可提领的经验值！</red>"
   treasury-withdraw-vault-success: "<green>成功从收益金库提领了 <gold><amount></gold> 金币！</green>"
   treasury-withdraw-exp-success: "<green>成功从收益金库提领了 <gold><amount></gold>！</green>"
+  treasury-withdraw-failed: "<red>提领失败：经济插件拒绝了这笔发放，金额已退回金库。</red>"
+  treasury-item-stale: "<yellow>金库内容已变动（他人先取走或有新收益存入），已为你重新加载画面。</yellow>"
   treasury-info-header: "<gold><bold>=== PlayerHeadShop 收益金库资产状况 ===</bold></gold>"
   treasury-info-vault: "<white>金库金币余额: <gold><amount></gold></white>"
   treasury-info-exp: "<white>金库累积经验: <green><amount></green></white>"
@@ -61,6 +63,24 @@ messages:
   market-unlist-success: "<green>成功下架头颅 (ID: <id>)！</green>"
   market-unlist-failed: "<red>下架头颅失败，查无此项目或你非该商品拥有者。</red>"
   market-buy-success: "<green>成功购买了由 <yellow><seller></yellow> 分享的 <gold><head_amount></gold> 头颅！</green>"
+  market-listing-gone: "<red>这个商品已被下架或售出，市集已为你重新加载。</red>"
+  market-sale-payout: "<green>你上架的 <gold><title></gold> 售出了，获得分润 <gold><amount></gold>！</green>"
+
+# 市集与上架菜单中的动态文字
+market:
+  default-head-name: "<player> 的头颅"
+  mode-vault: "Vault 经济金币"
+  mode-exp-level: "经验等级"
+  mode-exp-points: "经验点数"
+  mode-item: "<item> (实体物品)"
+
+# 告示牌输入提示文字（每行最多 15 字符）
+sign:
+  separator: "^^^^^^^^^^^^^^^"
+  price-hint-1: "请在第一行输入"
+  price-hint-2: "欲设定的售价金额"
+  title-hint-1: "请在第一行输入"
+  title-hint-2: "自定义头颅标题"
 
 gui:
   main-title: "<gradient:#FFAA00:#FF5555><bold>自定义头颅商店</bold></gradient>"
@@ -213,6 +233,8 @@ gui:
 
 units:
   item: "<amount> 个"
+  item-detail: "<amount> 个 <item>"
+  currency: "<amount> 金币"
   stacks-exact: "<amount> 个 (<stacks> 组)"
   stacks-rem: "<amount> 个 (<stacks> 组 + <rem> 个)"
   exp-level: "<amount> 等级"

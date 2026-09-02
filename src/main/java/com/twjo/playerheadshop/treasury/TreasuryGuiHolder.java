@@ -20,12 +20,24 @@ public class TreasuryGuiHolder implements InventoryHolder {
     private final Player admin;
     private Inventory inventory;
 
-    public TreasuryGuiHolder(Player admin) {
+    /** 此 GUI 所呈現的物品槽世代編號，用於偵測畫面是否已過期 */
+    private long generation;
+
+    public TreasuryGuiHolder(Player admin, long generation) {
         this.admin = admin;
+        this.generation = generation;
     }
 
     public Player getAdmin() {
         return admin;
+    }
+
+    public long getGeneration() {
+        return generation;
+    }
+
+    public void setGeneration(long generation) {
+        this.generation = generation;
     }
 
     public void setInventory(Inventory inventory) {
